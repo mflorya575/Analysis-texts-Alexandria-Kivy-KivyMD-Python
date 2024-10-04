@@ -148,32 +148,44 @@ class TextAnalyzerApp(QMainWindow):
         self.result_display.setText("\n\n".join(results))
 
     def perform_factor_analysis(self, texts):
-        if len(texts) == 0:
-            raise ValueError("Нет данных для факторного анализа")
+        if len(texts) < 2:
+            raise ValueError("Недостаточно данных для факторного анализа (необходимо хотя бы 2 документа)")
 
         # Преобразование текста в числовые данные
         vectorizer = TfidfVectorizer(max_features=100)
-        X = vectorizer.fit_transform(texts).toarray()
 
-        if X.shape[0] < 2:
-            raise ValueError("Недостаточно данных для факторного анализа (необходимо хотя бы 2 документа)")
+        try:
+            X = vectorizer.fit_transform(texts).toarray()  # Преобразуем сразу все тексты
+        except Exception as e:
+            raise ValueError(f"Ошибка при векторизации текстов: {str(e)}")
+
+        n_samples, n_features = X.shape
+        n_components = min(n_samples, n_features)  # Количество факторов не должно превышать min(n_samples, n_features)
+
+        if n_components < 2:
+            raise ValueError("Недостаточно данных для факторного анализа после векторизации")
 
         # Применение метода главных компонент (PCA)
-        pca = PCA(n_components=5)  # Определяем 5 факторов
-        X_pca = pca.fit_transform(X)
+        try:
+            pca = PCA(n_components=n_components)  # Устанавливаем допустимое количество факторов
+            X_pca = pca.fit_transform(X)
+        except Exception as e:
+            raise ValueError(f"Ошибка при применении PCA: {str(e)}")
 
         # Создание DataFrame для отображения результатов
-        df = pd.DataFrame(X_pca, columns=[f"Factor {i + 1}" for i in range(5)])
+        df = pd.DataFrame(X_pca, columns=[f"Factor {i + 1}" for i in range(n_components)])
         return df
 
     # Обработка для кнопки факторного анализа
     def perform_factor_analysis_from_text(self):
         try:
-            results = []
-            for text in self.texts:
-                df_factors = self.perform_factor_analysis([text])
-                results.append(f"Factor analysis results:\n{df_factors.to_string(index=False)}")
-            self.result_display.setText("\n\n".join(results))
+            if len(self.texts) < 2:
+                raise ValueError("Для факторного анализа необходимо как минимум 2 текста.")
+
+            # Выполняем факторный анализ сразу для всех текстов
+            df_factors = self.perform_factor_analysis(self.texts)
+            self.result_display.setText(f"Factor analysis results:\n{df_factors.to_string(index=False)}")
+
         except Exception as e:
             self.result_display.setText(f"Ошибка при выполнении факторного анализа: {str(e)}")
 
