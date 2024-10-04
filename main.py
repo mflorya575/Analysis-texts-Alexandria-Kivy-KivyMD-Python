@@ -26,8 +26,8 @@ class TextAnalyzerApp(QMainWindow):
 
         # Create layout and widgets
         self.layout = QVBoxLayout()
-        self.label = QLabel("Выберите текстовый файл для анализа (.txt):")
-        self.button = QPushButton("Открыть файл")
+        self.label = QLabel("Выберите файл/файлы для анализа:")
+        self.button = QPushButton("Открыть файл/файлы")
         self.sentiment_button = QPushButton("Тональность текста")
         self.synonym_button = QPushButton("Синонимы")
         self.lexeme_button = QPushButton("Лексемы")
@@ -53,19 +53,22 @@ class TextAnalyzerApp(QMainWindow):
         self.synonym_button.clicked.connect(self.count_synonyms_from_text)
         self.lexeme_button.clicked.connect(self.count_lexemes_from_text)
 
-        self.text = ""  # Сохраняем текст для анализа
+        self.texts = []  # Список для хранения текста из нескольких файлов
 
     def open_file(self):
         file_dialog = QFileDialog()
-        file_path, _ = file_dialog.getOpenFileName(self, "Open Text File", "", "Text Files (*.txt)")
+        file_paths, _ = file_dialog.getOpenFileNames(self, "Open Text Files", "", "Text Files (*.txt)")
 
-        if file_path:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                self.text = file.read()
-                self.result_display.setText(self.text)  # Отображаем загруженный текст
+        if file_paths:
+            self.texts = []  # Сброс списка текстов
+            for file_path in file_paths:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    text = file.read()
+                    self.texts.append(text)  # Добавляем текст в список
+                    self.result_display.append(f"Loaded text from: {file_path}\n{text}\n")  # Отображаем загруженный текст
 
-    def analyze_sentiment(self):
-        blob = TextBlob(self.text)
+    def analyze_sentiment(self, text):
+        blob = TextBlob(text)
         sentiment = blob.sentiment.polarity
         if sentiment > 0:
             return "Позитивный"
@@ -108,40 +111,33 @@ class TextAnalyzerApp(QMainWindow):
         sorted_lexemes = sorted(lexeme_count.items(), key=lambda item: item[1], reverse=True)
         return sorted_lexemes
 
-    def analyze_text(self):
-        sentiment = self.analyze_sentiment()
-        synonym_list = self.get_synonyms('happy')
-        synonym_list.update({'cheerful', 'joyful', 'blissful'})
-        synonym_counts = self.count_synonyms(self.text, synonym_list)
-        lexeme_counts = self.count_lexemes(self.text)
-
-        analysis_result = f"Sentiment: {sentiment}\n"
-        analysis_result += "Synonym counts:\n"
-        for synonym, count in synonym_counts.items():
-            if count > 0:
-                analysis_result += f"{synonym} ({count})\n"
-
-        analysis_result += "\nLexeme counts:\n"
-        for lexeme, count in lexeme_counts:
-            analysis_result += f"{lexeme} ({count})\n"
-
-        self.result_display.setText(analysis_result)
-
     def analyze_sentiment_from_text(self):
-        sentiment = self.analyze_sentiment()
-        self.result_display.setText(f"Sentiment: {sentiment}")
+        results = []
+        for text in self.texts:
+            sentiment = self.analyze_sentiment(text)
+            results.append(f"Sentiment: {sentiment}")
+        self.result_display.setText("\n".join(results))
 
     def count_synonyms_from_text(self):
         synonym_list = self.get_synonyms('happy')
         synonym_list.update({'cheerful', 'joyful', 'blissful'})
-        synonym_counts = self.count_synonyms(self.text, synonym_list)
-        result = "\n".join([f"{synonym} ({count})" for synonym, count in synonym_counts.items() if count > 0])
-        self.result_display.setText(f"Synonym counts:\n{result}")
+        results = []
+
+        for text in self.texts:
+            synonym_counts = self.count_synonyms(text, synonym_list)
+            result = f"Synonym counts in text:\n" + "\n".join([f"{synonym} ({count})" for synonym, count in synonym_counts.items() if count > 0])
+            results.append(result)
+
+        self.result_display.setText("\n\n".join(results))
 
     def count_lexemes_from_text(self):
-        lexeme_counts = self.count_lexemes(self.text)
-        result = "\n".join([f"{lexeme} ({count})" for lexeme, count in lexeme_counts])
-        self.result_display.setText(f"Lexeme counts:\n{result}")
+        results = []
+        for text in self.texts:
+            lexeme_counts = self.count_lexemes(text)
+            result = f"Lexeme counts in text:\n" + "\n".join([f"{lexeme} ({count})" for lexeme, count in lexeme_counts])
+            results.append(result)
+
+        self.result_display.setText("\n\n".join(results))
 
 
 if __name__ == "__main__":
