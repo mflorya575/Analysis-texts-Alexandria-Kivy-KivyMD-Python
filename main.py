@@ -345,11 +345,19 @@ class TextAnalyzerApp(QMainWindow):
             clusters[label].append(f"Документ {i + 1}: {self.texts[i]}")  # Добавляем содержимое документа с его номером
 
         result = []
-        for cluster, docs in clusters.items():
-            # Добавляем заголовок для каждого кластера
-            result.append(f"*** Кластер {cluster} ***\n" + "\n".join(docs) + "\n" + "-" * 40)  # Добавляем разделитель
+        # Определяем цвета для кластеров
+        cluster_colors = ["#FFDDC1", "#C1E1FF", "#D4FFC1", "#FFF1C1", "#C1C1FF"]
 
-        self.result_display.setText("\n\n".join(result))  # Объединяем результат для отображения
+        for idx, (cluster, docs) in enumerate(clusters.items()):
+            color = cluster_colors[
+                idx % len(cluster_colors)]  # Используем цвет из списка, если кластеров больше, чем цветов
+            # Добавляем заголовок для каждого кластера с цветом
+            result.append(f"<div style='background-color: {color}; padding: 10px; border-radius: 5px;'>" +
+                          f"<strong>Кластер {cluster}</strong><br>" + "<br>".join(docs) +
+                          "</div><br>")  # Добавляем разделитель
+
+        # Устанавливаем HTML-содержимое в текстовое поле
+        self.result_display.setHtml("\n".join(result))  # Объединяем результат для отображения
 
 
 if __name__ == "__main__":
