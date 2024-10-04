@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog
 from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
@@ -42,6 +42,10 @@ class TextAnalyzerApp(QMainWindow):
         self.layout.addWidget(self.factor_button)
         self.factor_button.clicked.connect(self.perform_factor_analysis_from_text)
 
+        # Добавляем новый виджет для отображения списка слов и их выбора
+        self.lexeme_list_widget = QListWidget()
+        self.layout.addWidget(self.lexeme_list_widget)
+
         # Add widgets to layout
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.button)
@@ -62,6 +66,9 @@ class TextAnalyzerApp(QMainWindow):
         self.lexeme_button.clicked.connect(self.count_lexemes_from_text)
 
         self.texts = []  # Список для хранения текста из нескольких файлов
+        # В словарь для хранения групп слов
+        self.word_groups = {}
+        self.lexeme_list_widget.itemClicked.connect(lambda item: self.add_to_group(item.text()))
 
     def open_file(self):
         file_dialog = QFileDialog()
@@ -74,6 +81,15 @@ class TextAnalyzerApp(QMainWindow):
                     text = file.read()
                     self.texts.append(text)  # Добавляем текст в список
                     self.result_display.append(f"Loaded text from: {file_path}\n{text}\n")  # Отображаем загруженный текст
+
+    # Функция для выбора и добавления слов в группы
+    def add_to_group(self, word):
+        group_name, ok = QInputDialog.getText(self, "Создать группу", f"Введите название группы для {word}:")
+        if ok and group_name:
+            if group_name not in self.word_groups:
+                self.word_groups[group_name] = []
+            self.word_groups[group_name].append(word)
+            self.result_display.append(f"Слово '{word}' добавлено в группу '{group_name}'")
 
     def analyze_sentiment(self, text):
         blob = TextBlob(text)
@@ -138,14 +154,44 @@ class TextAnalyzerApp(QMainWindow):
 
         self.result_display.setText("\n\n".join(results))
 
+    # Изменение метода для отображения лексем с количеством упоминаний
     def count_lexemes_from_text(self):
-        results = []
+        self.lexeme_list_widget.clear()  # Очищаем список перед новой загрузкой
+        all_lexemes = {}
+
         for text in self.texts:
             lexeme_counts = self.count_lexemes(text)
-            result = f"Lexeme counts in text:\n" + "\n".join([f"{lexeme} ({count})" for lexeme, count in lexeme_counts])
-            results.append(result)
+            for lexeme, count in lexeme_counts:
+                if lexeme in all_lexemes:
+                    all_lexemes[lexeme] += count  # Если лексема уже есть, добавляем её частоту
+                else:
+                    all_lexemes[lexeme] = count  # Иначе добавляем её впервые
 
-        self.result_display.setText("\n\n".join(results))
+        # Добавляем в список лексемы с количеством упоминаний
+        for lexeme, count in all_lexemes.items():
+            self.lexeme_list_widget.addItem(f"{lexeme} ({count})")
+
+    # Исправление функции подготовки текстов для факторного анализа
+    def prepare_texts_for_factor_analysis(self):
+        lemmatized_texts = []
+
+        for text in self.texts:
+            cleaned_text = re.sub(r"[^\w\s]", "", text.lower())  # Убираем пунктуацию
+            word_list = cleaned_text.split()
+            lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
+            lemmatized_texts.append(" ".join(lemmatized_words))
+
+        grouped_texts = []
+
+        for text in lemmatized_texts:
+            new_text = text
+            for group, words in self.word_groups.items():
+                for word in words:
+                    # Используем границы слов для точной замены
+                    new_text = re.sub(rf"\b{word}\b", group, new_text)
+            grouped_texts.append(new_text)
+
+        return grouped_texts
 
     def perform_factor_analysis(self, texts):
         if len(texts) < 2:
@@ -180,18 +226,12 @@ class TextAnalyzerApp(QMainWindow):
 
         return df, feature_names  # Возвращаем и DataFrame, и список признаков
 
-    # Обработка для кнопки факторного анализа
+    # Изменяем метод для факторного анализа
     def perform_factor_analysis_from_text(self):
         try:
-            if len(self.texts) < 2:
-                raise ValueError("Для факторного анализа необходимо как минимум 2 текста.")
-
-            # Получаем DataFrame с факторами и список признаков
-            df_factors, feature_names = self.perform_factor_analysis(self.texts)
-
-            # Отображаем результаты
+            grouped_texts = self.prepare_texts_for_factor_analysis()  # Подготавливаем тексты с учетом групп
+            df_factors, feature_names = self.perform_factor_analysis(grouped_texts)
             self.display_factor_analysis_results(df_factors, feature_names)
-
         except Exception as e:
             self.result_display.setText(f"Ошибка при выполнении факторного анализа: {str(e)}")
 
