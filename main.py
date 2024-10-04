@@ -198,26 +198,26 @@ class TextAnalyzerApp(QMainWindow):
     # Отображение результатов в таблице
     def display_factor_analysis_results(self, df, feature_names):
         # Создаем QTableWidget для отображения результатов факторного анализа
-        num_rows = df.shape[0] + 1  # +1 для строки с словами (факторными нагрузками)
+        num_rows = df.shape[0]  # Количество строк = количество документов
+        num_columns = df.shape[1] + 1  # +1 для первой колонки с признаками (словами)
+
         table = QTableWidget()
-        table.setRowCount(num_rows)  # Количество строк = количество документов + 1 строка для слов
-        table.setColumnCount(df.shape[1])  # Количество столбцов = количество факторов
-        table.setHorizontalHeaderLabels([f"Factor {i + 1}" for i in range(df.shape[1])])
+        table.setRowCount(num_rows)  # Устанавливаем количество строк (количество документов)
+        table.setColumnCount(num_columns)  # Устанавливаем количество колонок (количество факторов + 1 для слов)
+
+        # Устанавливаем заголовки столбцов для факторов
+        table.setHorizontalHeaderLabels(["Фактор. нагрузки"] + [f"Factor {i + 1}" for i in range(df.shape[1])])
+
+        # Заполняем первую колонку (слева) словами (признаками)
+        for i, word in enumerate(feature_names):
+            item = QTableWidgetItem(word)
+            table.setItem(i, 0, item)  # Признаки будут в первой колонке (индекс 0)
 
         # Заполняем таблицу значениями факторного анализа
-        for i in range(df.shape[0]):
-            for j in range(df.shape[1]):
+        for i in range(df.shape[0]):  # Для каждой строки документа
+            for j in range(df.shape[1]):  # Для каждого фактора
                 item = QTableWidgetItem(f"{df.iloc[i, j]:.6f}")
-                table.setItem(i, j, item)
-
-        # Добавляем строку с факторными нагрузками (словами)
-        for j in range(df.shape[1]):
-            # Проверяем, что у нас достаточно признаков для каждого фактора
-            if j < len(feature_names):
-                item = QTableWidgetItem(feature_names[j])
-            else:
-                item = QTableWidgetItem("N/A")  # Если признаков меньше, чем факторов
-            table.setItem(df.shape[0], j, item)  # Слова идут в последнюю строку
+                table.setItem(i, j + 1, item)  # Числа начинаются со второго столбца
 
         # Устанавливаем созданную таблицу как центральный виджет
         self.setCentralWidget(table)
