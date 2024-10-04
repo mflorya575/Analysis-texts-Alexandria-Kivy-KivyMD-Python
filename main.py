@@ -1,5 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget
+from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
 from nltk.corpus import wordnet
@@ -10,6 +11,9 @@ nltk.data.path.append('C:/python/9_analys_texts/data/nltk_data')
 
 # Скачиваем нужные пакеты
 nltk.download('wordnet', download_dir='C:/python/9_analys_texts/data/nltk_data')
+nltk.download('omw-1.4')  # Чтобы WordNet мог работать с расширенным набором слов
+
+lemmatizer = WordNetLemmatizer()
 
 
 class TextAnalyzerApp(QMainWindow):
@@ -48,21 +52,6 @@ class TextAnalyzerApp(QMainWindow):
                 text = file.read()
                 self.analyze_text(text)
 
-    def analyze_text(self, text):
-        # Анализ тональности текста
-        sentiment = self.analyze_sentiment(text)
-
-        # Подсчет синонимов (для примера используем слово 'happy')
-        synonym_list = self.get_synonyms('happy')
-        synonym_count = self.count_synonyms(text, synonym_list)
-
-        # Формируем результат анализа
-        analysis_result = f"Sentiment: {sentiment}\n"
-        analysis_result += f"Synonym count for 'happy': {synonym_count}"
-
-        # Отображаем результат анализа
-        self.result_display.setText(analysis_result)
-
     def analyze_sentiment(self, text):
         blob = TextBlob(text)
         sentiment = blob.sentiment.polarity
@@ -77,13 +66,33 @@ class TextAnalyzerApp(QMainWindow):
         synonyms = set()
         for syn in wordnet.synsets(word):
             for lemma in syn.lemmas():
+                # Добавляем как исходные формы слов, так и леммы
                 synonyms.add(lemma.name())
         return synonyms
 
     def count_synonyms(self, text, synonym_list):
-        word_list = text.split()
-        count = sum(1 for word in word_list if word in synonym_list)
+        # Приводим текст к нижнему регистру и разбиваем на слова
+        word_list = text.lower().split()
+
+        # Лемматизируем каждое слово
+        lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
+
+        # Подсчитываем количество синонимов
+        count = sum(1 for word in lemmatized_words if word in synonym_list)
         return count
+
+    def analyze_text(self, text):
+        # Анализ тональности
+        sentiment = self.analyze_sentiment(text)
+
+        # Пример анализа синонимов для слова "happy"
+        synonym_list = self.get_synonyms('happy')
+        synonym_count = self.count_synonyms(text, synonym_list)
+
+        # Отображение результатов
+        analysis_result = f"Sentiment: {sentiment}\n"
+        analysis_result += f"Synonym count for 'happy' and its synonyms: {synonym_count}"
+        self.result_display.setText(analysis_result)
 
 
 if __name__ == "__main__":
