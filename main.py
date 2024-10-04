@@ -1,7 +1,9 @@
 import sys
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog, QHBoxLayout, QFrame, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, \
+    QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog, QHBoxLayout, QFrame, QPushButton, \
+    QSystemTrayIcon, QMenu, QAction
 from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
@@ -35,7 +37,19 @@ class TextAnalyzerApp(QMainWindow):
         self.setWindowTitle("Alexandria")
         self.setGeometry(450, 200, 1000, 600)
         # Установка иконки окна
-        self.setWindowIcon(QIcon("media/sova.png"))
+        self.setWindowIcon(QIcon("media/sova.ico"))  # Убедитесь, что это .ico файл
+
+        # Инициализация системного трея
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(QIcon("media/sova.ico"))  # Убедитесь, что это .ico файл
+
+        # Создание контекстного меню для системного трея
+        tray_menu = QMenu()
+        exit_action = QAction("Выход", self)
+        exit_action.triggered.connect(self.close)
+        tray_menu.addAction(exit_action)
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.show()  # Показать иконку в трее
 
         # Create layout and widgets
         self.layout = QVBoxLayout()
@@ -366,6 +380,7 @@ class TextAnalyzerApp(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon("media/sova.ico"))
     window = TextAnalyzerApp()
     window.show()
     sys.exit(app.exec_())
