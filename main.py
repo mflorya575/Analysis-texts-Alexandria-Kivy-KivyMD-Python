@@ -64,32 +64,37 @@ class TextAnalyzerApp(QMainWindow):
 
     def get_synonyms(self, word):
         synonyms = set()
+        # Получаем синонимы из WordNet
         for syn in wordnet.synsets(word):
             for lemma in syn.lemmas():
-                # Добавляем как исходные формы слов, так и леммы
-                synonyms.add(lemma.name())
+                # Добавляем все леммы (варианты слов)
+                synonyms.add(lemma.name().lower())
         return synonyms
 
     def count_synonyms(self, text, synonym_list):
-        # Приводим текст к нижнему регистру и разбиваем на слова
+        # Приводим текст к нижнему регистру и разделяем на слова
         word_list = text.lower().split()
 
-        # Лемматизируем каждое слово
+        # Лемматизируем каждое слово для нормализации
         lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
 
-        # Подсчитываем количество синонимов
+        # Подсчет совпадений по лемматизированным словам
         count = sum(1 for word in lemmatized_words if word in synonym_list)
         return count
 
     def analyze_text(self, text):
-        # Анализ тональности
+        # Анализ тональности (может быть функция TextBlob, как раньше)
         sentiment = self.analyze_sentiment(text)
 
-        # Пример анализа синонимов для слова "happy"
+        # Получаем список синонимов для слова "happy"
         synonym_list = self.get_synonyms('happy')
+        # Добавляем дополнительные синонимы вручную
+        synonym_list.update({'cheerful', 'joyful', 'blissful'})
+
+        # Считаем синонимы в тексте
         synonym_count = self.count_synonyms(text, synonym_list)
 
-        # Отображение результатов
+        # Формируем результат анализа
         analysis_result = f"Sentiment: {sentiment}\n"
         analysis_result += f"Synonym count for 'happy' and its synonyms: {synonym_count}"
         self.result_display.setText(analysis_result)
