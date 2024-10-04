@@ -82,8 +82,19 @@ class TextAnalyzerApp(QMainWindow):
         count = sum(1 for word in lemmatized_words if word in synonym_list)
         return count
 
+    def count_lexemes(self, text):
+        # Приводим текст к нижнему регистру и разделяем на слова
+        word_list = text.lower().split()
+
+        # Лемматизируем каждое слово для нормализации и получаем уникальные лексемы
+        lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
+
+        # Подсчет уникальных лексем
+        lexemes_count = len(set(lemmatized_words))
+        return lexemes_count
+
     def analyze_text(self, text):
-        # Анализ тональности (может быть функция TextBlob, как раньше)
+        # Анализ тональности
         sentiment = self.analyze_sentiment(text)
 
         # Получаем список синонимов для слова "happy"
@@ -94,9 +105,13 @@ class TextAnalyzerApp(QMainWindow):
         # Считаем синонимы в тексте
         synonym_count = self.count_synonyms(text, synonym_list)
 
+        # Считаем уникальные лексемы
+        lexemes_count = self.count_lexemes(text)
+
         # Формируем результат анализа
         analysis_result = f"Sentiment: {sentiment}\n"
-        analysis_result += f"Synonym count for 'happy' and its synonyms: {synonym_count}"
+        analysis_result += f"Synonym count for 'happy' and its synonyms: {synonym_count}\n"
+        analysis_result += f"Unique lexemes count: {lexemes_count}"
         self.result_display.setText(analysis_result)
 
 
