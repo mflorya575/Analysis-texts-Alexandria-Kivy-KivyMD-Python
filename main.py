@@ -1,4 +1,6 @@
 import sys
+
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog, QHBoxLayout, QFrame, QPushButton
 from nltk import WordNetLemmatizer
 from textblob import TextBlob
@@ -32,6 +34,8 @@ class TextAnalyzerApp(QMainWindow):
 
         self.setWindowTitle("Alexandria")
         self.setGeometry(450, 200, 1000, 600)
+        # Установка иконки окна
+        self.setWindowIcon(QIcon("media/sova.png"))
 
         # Create layout and widgets
         self.layout = QVBoxLayout()
