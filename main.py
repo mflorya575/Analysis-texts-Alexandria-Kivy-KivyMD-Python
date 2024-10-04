@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog, QHBoxLayout, QFrame, QPushButton
 from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
@@ -46,6 +46,12 @@ class TextAnalyzerApp(QMainWindow):
         self.lexeme_list_widget = QListWidget()
         self.layout.addWidget(self.lexeme_list_widget)
 
+        # Виджет для отображения плашек групп
+        self.group_widget = QWidget()
+        self.group_layout = QVBoxLayout()
+        self.group_widget.setLayout(self.group_layout)
+        self.layout.addWidget(self.group_widget)  # Добавляем в основной layout
+
         # Add widgets to layout
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.button)
@@ -82,14 +88,45 @@ class TextAnalyzerApp(QMainWindow):
                     self.texts.append(text)  # Добавляем текст в список
                     self.result_display.append(f"Loaded text from: {file_path}\n{text}\n")  # Отображаем загруженный текст
 
-    # Функция для выбора и добавления слов в группы
     def add_to_group(self, word):
         group_name, ok = QInputDialog.getText(self, "Создать группу", f"Введите название группы для {word}:")
         if ok and group_name:
             if group_name not in self.word_groups:
-                self.word_groups[group_name] = []
+                self.word_groups[group_name] = []  # Исправлено
+
+                # Создаем плашку для новой группы
+                group_frame = QFrame()
+                group_layout = QHBoxLayout()
+                group_frame.setLayout(group_layout)
+
+                group_label = QLabel(group_name)
+                remove_button = QPushButton('x')
+                remove_button.setFixedSize(20, 20)
+
+                group_layout.addWidget(group_label)
+                group_layout.addWidget(remove_button)
+                self.group_layout.addWidget(group_frame)
+
+                # Соединяем кнопку удаления с функцией
+                remove_button.clicked.connect(lambda _, grp=group_name: self.remove_group(grp, group_frame))
+
+            # Добавляем слово в группу и удаляем его из списка лексем
             self.word_groups[group_name].append(word)
             self.result_display.append(f"Слово '{word}' добавлено в группу '{group_name}'")
+
+            # Удаляем слово из списка лексем
+            for i in range(self.lexeme_list_widget.count()):
+                if self.lexeme_list_widget.item(i).text().startswith(word):
+                    self.lexeme_list_widget.takeItem(i)
+                    break
+
+    # Функция для удаления группы
+    def remove_group(self, group_name, group_frame):
+        # Удаляем группу и плашку
+        del self.word_groups[group_name]
+        self.group_layout.removeWidget(group_frame)
+        group_frame.deleteLater()
+        self.result_display.append(f"Группа '{group_name}' была удалена")
 
     def analyze_sentiment(self, text):
         blob = TextBlob(text)
