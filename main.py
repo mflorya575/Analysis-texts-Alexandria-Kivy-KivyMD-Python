@@ -86,12 +86,18 @@ class TextAnalyzerApp(QMainWindow):
         # Приводим текст к нижнему регистру и разделяем на слова
         word_list = text.lower().split()
 
-        # Лемматизируем каждое слово для нормализации и получаем уникальные лексемы
+        # Лемматизируем каждое слово для нормализации
         lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
 
-        # Подсчет уникальных лексем
-        lexemes_count = len(set(lemmatized_words))
-        return lexemes_count
+        # Подсчитываем количество вхождений каждой лексемы
+        lexeme_count = {}
+        for word in lemmatized_words:
+            if word in lexeme_count:
+                lexeme_count[word] += 1
+            else:
+                lexeme_count[word] = 1
+
+        return lexeme_count
 
     def analyze_text(self, text):
         # Анализ тональности
@@ -105,13 +111,18 @@ class TextAnalyzerApp(QMainWindow):
         # Считаем синонимы в тексте
         synonym_count = self.count_synonyms(text, synonym_list)
 
-        # Считаем уникальные лексемы
-        lexemes_count = self.count_lexemes(text)
+        # Считаем уникальные лексемы и их частоту
+        lexeme_counts = self.count_lexemes(text)
 
         # Формируем результат анализа
         analysis_result = f"Sentiment: {sentiment}\n"
         analysis_result += f"Synonym count for 'happy' and its synonyms: {synonym_count}\n"
-        analysis_result += f"Unique lexemes count: {lexemes_count}"
+        analysis_result += "Lexeme counts:\n"
+
+        # Добавляем лексемы и их количество в результат
+        for lexeme, count in lexeme_counts.items():
+            analysis_result += f"{lexeme} ({count})\n"
+
         self.result_display.setText(analysis_result)
 
 
