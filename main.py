@@ -73,15 +73,20 @@ class TextAnalyzerApp(QMainWindow):
         return synonyms
 
     def count_synonyms(self, text, synonym_list):
-        # Приводим текст к нижнему регистру и разделяем на слова
-        word_list = text.lower().split()
+        # Приводим текст к нижнему регистру и удаляем пунктуацию
+        cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
+        word_list = cleaned_text.split()
 
         # Лемматизируем каждое слово для нормализации
         lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
 
-        # Подсчет совпадений по лемматизированным словам
-        count = sum(1 for word in lemmatized_words if word in synonym_list)
-        return count
+        # Подсчитываем количество вхождений каждого синонима
+        synonym_count = {synonym: 0 for synonym in synonym_list}
+        for word in lemmatized_words:
+            if word in synonym_count:
+                synonym_count[word] += 1
+
+        return synonym_count
 
     def count_lexemes(self, text):
         # Удаляем пунктуацию и приводим текст к нижнему регистру
@@ -115,17 +120,21 @@ class TextAnalyzerApp(QMainWindow):
         synonym_list.update({'cheerful', 'joyful', 'blissful'})
 
         # Считаем синонимы в тексте
-        synonym_count = self.count_synonyms(text, synonym_list)
+        synonym_counts = self.count_synonyms(text, synonym_list)
 
         # Считаем уникальные лексемы и их частоту
         lexeme_counts = self.count_lexemes(text)
 
         # Формируем результат анализа
         analysis_result = f"Sentiment: {sentiment}\n"
-        analysis_result += f"Synonym count for 'happy' and its synonyms: {synonym_count}\n"
-        analysis_result += "Lexeme counts:\n"
+        analysis_result += "Synonym counts:\n"
 
-        # Добавляем лексемы и их количество в результат
+        # Добавляем синонимы и их количество в результат
+        for synonym, count in synonym_counts.items():
+            if count > 0:  # Показать только те синонимы, которые есть в тексте
+                analysis_result += f"{synonym} ({count})\n"
+
+        analysis_result += "\nLexeme counts:\n"
         for lexeme, count in lexeme_counts:
             analysis_result += f"{lexeme} ({count})\n"
 
