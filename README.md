@@ -1,4 +1,4 @@
-# Analysis Texts in Python PyQt5/6
+# Analysis texts in Python PyQt5/6 - Alexandria (Александрия)
 
 Функционал:
 1. Анализ текста (именно обработка файла формата .txt)
