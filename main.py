@@ -325,15 +325,30 @@ class TextAnalyzerApp(QMainWindow):
         try:
             # Подготовка текстов
             lemmatized_texts = self.prepare_texts_for_factor_analysis()
+
             # Выполнение кластерного анализа
             labels = self.perform_clustering(lemmatized_texts)
 
-            # Отображение результатов
-            result = "\n".join([f"Документ {i + 1}: Кластер {label}" for i, label in enumerate(labels)])
-            self.result_display.setText(result)
+            # Отображение документов по кластерам
+            self.display_documents_by_cluster(labels)  # Вызываем функцию для отображения содержимого документов
 
         except Exception as e:
             self.result_display.setText(f"Ошибка при выполнении кластерного анализа: {str(e)}")
+
+    def display_documents_by_cluster(self, labels):
+        clusters = {}
+
+        # Создаем кластеры и добавляем тексты
+        for i, label in enumerate(labels):
+            if label not in clusters:
+                clusters[label] = []
+            clusters[label].append(self.texts[i])  # Добавляем содержимое документа
+
+        result = []
+        for cluster, docs in clusters.items():
+            result.append(f"Кластер {cluster}:\n" + "\n".join(docs))  # Выводим тексты документов в каждом кластере
+
+        self.result_display.setText("\n\n".join(result))  # Объединяем результат для отображения
 
 
 if __name__ == "__main__":
