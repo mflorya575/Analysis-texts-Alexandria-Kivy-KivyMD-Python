@@ -151,7 +151,7 @@ class TextAnalyzerApp(QMainWindow):
         if len(texts) < 2:
             raise ValueError("Недостаточно данных для факторного анализа (необходимо хотя бы 2 документа)")
 
-        # Преобразование текста в числовые данные
+        # Преобразование текста в числовые данные через TF-IDF
         vectorizer = TfidfVectorizer(max_features=100)
 
         try:
@@ -172,9 +172,13 @@ class TextAnalyzerApp(QMainWindow):
         except Exception as e:
             raise ValueError(f"Ошибка при применении PCA: {str(e)}")
 
+        # Получение признаков (слов)
+        feature_names = vectorizer.get_feature_names_out()
+
         # Создание DataFrame для отображения результатов
         df = pd.DataFrame(X_pca, columns=[f"Factor {i + 1}" for i in range(n_components)])
-        return df
+
+        return df, feature_names  # Возвращаем и DataFrame, и список признаков
 
     # Обработка для кнопки факторного анализа
     def perform_factor_analysis_from_text(self):
@@ -182,24 +186,38 @@ class TextAnalyzerApp(QMainWindow):
             if len(self.texts) < 2:
                 raise ValueError("Для факторного анализа необходимо как минимум 2 текста.")
 
-            df_factors = self.perform_factor_analysis(self.texts)
-            self.display_factor_analysis_results(df_factors)
+            # Получаем DataFrame с факторами и список признаков
+            df_factors, feature_names = self.perform_factor_analysis(self.texts)
+
+            # Отображаем результаты
+            self.display_factor_analysis_results(df_factors, feature_names)
 
         except Exception as e:
             self.result_display.setText(f"Ошибка при выполнении факторного анализа: {str(e)}")
 
-    def display_factor_analysis_results(self, df):
+    # Отображение результатов в таблице
+    def display_factor_analysis_results(self, df, feature_names):
         # Создаем QTableWidget для отображения результатов факторного анализа
+        num_rows = df.shape[0] + 1  # +1 для строки с словами (факторными нагрузками)
         table = QTableWidget()
-        table.setRowCount(df.shape[0])  # Количество строк = количество образцов (документов)
+        table.setRowCount(num_rows)  # Количество строк = количество документов + 1 строка для слов
         table.setColumnCount(df.shape[1])  # Количество столбцов = количество факторов
         table.setHorizontalHeaderLabels([f"Factor {i + 1}" for i in range(df.shape[1])])
 
-        # Заполняем таблицу значениями
+        # Заполняем таблицу значениями факторного анализа
         for i in range(df.shape[0]):
             for j in range(df.shape[1]):
                 item = QTableWidgetItem(f"{df.iloc[i, j]:.6f}")
                 table.setItem(i, j, item)
+
+        # Добавляем строку с факторными нагрузками (словами)
+        for j in range(df.shape[1]):
+            # Проверяем, что у нас достаточно признаков для каждого фактора
+            if j < len(feature_names):
+                item = QTableWidgetItem(feature_names[j])
+            else:
+                item = QTableWidgetItem("N/A")  # Если признаков меньше, чем факторов
+            table.setItem(df.shape[0], j, item)  # Слова идут в последнюю строку
 
         # Устанавливаем созданную таблицу как центральный виджет
         self.setCentralWidget(table)
