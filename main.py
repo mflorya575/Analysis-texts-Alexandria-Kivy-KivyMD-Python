@@ -21,16 +21,16 @@ class TextAnalyzerApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Text Analyzer")
+        self.setWindowTitle("Alexandria")
         self.setGeometry(450, 200, 1000, 600)
 
         # Create layout and widgets
         self.layout = QVBoxLayout()
-        self.label = QLabel("Choose a text file to analyze:")
-        self.button = QPushButton("Open File")
-        self.sentiment_button = QPushButton("Analyze Sentiment")
-        self.synonym_button = QPushButton("Count Synonyms")
-        self.lexeme_button = QPushButton("Count Lexemes")
+        self.label = QLabel("Выберите текстовый файл для анализа (.txt):")
+        self.button = QPushButton("Открыть файл")
+        self.sentiment_button = QPushButton("Тональность текста")
+        self.synonym_button = QPushButton("Синонимы")
+        self.lexeme_button = QPushButton("Лексемы")
         self.result_display = QTextEdit()
         self.result_display.setReadOnly(True)
 
@@ -68,11 +68,11 @@ class TextAnalyzerApp(QMainWindow):
         blob = TextBlob(self.text)
         sentiment = blob.sentiment.polarity
         if sentiment > 0:
-            return "Positive"
+            return "Позитивный"
         elif sentiment < 0:
-            return "Negative"
+            return "Негативный"
         else:
-            return "Neutral"
+            return "Нейтральный"
 
     def get_synonyms(self, word):
         synonyms = set()
