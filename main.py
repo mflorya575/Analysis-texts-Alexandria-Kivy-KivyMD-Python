@@ -342,11 +342,12 @@ class TextAnalyzerApp(QMainWindow):
         for i, label in enumerate(labels):
             if label not in clusters:
                 clusters[label] = []
-            clusters[label].append(self.texts[i])  # Добавляем содержимое документа
+            clusters[label].append(f"Документ {i + 1}: {self.texts[i]}")  # Добавляем содержимое документа с его номером
 
         result = []
         for cluster, docs in clusters.items():
-            result.append(f"Кластер {cluster}:\n" + "\n".join(docs))  # Выводим тексты документов в каждом кластере
+            # Добавляем заголовок для каждого кластера
+            result.append(f"*** Кластер {cluster} ***\n" + "\n".join(docs) + "\n" + "-" * 40)  # Добавляем разделитель
 
         self.result_display.setText("\n\n".join(result))  # Объединяем результат для отображения
 
