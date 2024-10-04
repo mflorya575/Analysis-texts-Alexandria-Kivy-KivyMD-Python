@@ -6,6 +6,10 @@ import nltk
 from nltk.corpus import wordnet
 import re
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import PCA
+import pandas as pd
+
 
 # Указываем новый путь для данных NLTK
 nltk.data.path.append('C:/python/9_analys_texts/data/nltk_data')
@@ -33,6 +37,10 @@ class TextAnalyzerApp(QMainWindow):
         self.lexeme_button = QPushButton("Лексемы")
         self.result_display = QTextEdit()
         self.result_display.setReadOnly(True)
+
+        self.factor_button = QPushButton("Факторный анализ")
+        self.layout.addWidget(self.factor_button)
+        self.factor_button.clicked.connect(self.perform_factor_analysis_from_text)
 
         # Add widgets to layout
         self.layout.addWidget(self.label)
@@ -138,6 +146,36 @@ class TextAnalyzerApp(QMainWindow):
             results.append(result)
 
         self.result_display.setText("\n\n".join(results))
+
+    def perform_factor_analysis(self, texts):
+        if len(texts) == 0:
+            raise ValueError("Нет данных для факторного анализа")
+
+        # Преобразование текста в числовые данные
+        vectorizer = TfidfVectorizer(max_features=100)
+        X = vectorizer.fit_transform(texts).toarray()
+
+        if X.shape[0] < 2:
+            raise ValueError("Недостаточно данных для факторного анализа (необходимо хотя бы 2 документа)")
+
+        # Применение метода главных компонент (PCA)
+        pca = PCA(n_components=5)  # Определяем 5 факторов
+        X_pca = pca.fit_transform(X)
+
+        # Создание DataFrame для отображения результатов
+        df = pd.DataFrame(X_pca, columns=[f"Factor {i + 1}" for i in range(5)])
+        return df
+
+    # Обработка для кнопки факторного анализа
+    def perform_factor_analysis_from_text(self):
+        try:
+            results = []
+            for text in self.texts:
+                df_factors = self.perform_factor_analysis([text])
+                results.append(f"Factor analysis results:\n{df_factors.to_string(index=False)}")
+            self.result_display.setText("\n\n".join(results))
+        except Exception as e:
+            self.result_display.setText(f"Ошибка при выполнении факторного анализа: {str(e)}")
 
 
 if __name__ == "__main__":
