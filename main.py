@@ -6,9 +6,14 @@ import nltk
 from nltk.corpus import wordnet
 import re
 
+# Факторный анализ
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import PCA
 import pandas as pd
+
+# Кластерный анализ
+from sklearn.cluster import KMeans
+import numpy as np
 
 
 # Указываем новый путь для данных NLTK
@@ -41,6 +46,10 @@ class TextAnalyzerApp(QMainWindow):
         self.factor_button = QPushButton("Факторный анализ")
         self.layout.addWidget(self.factor_button)
         self.factor_button.clicked.connect(self.perform_factor_analysis_from_text)
+
+        self.clustering_button = QPushButton("Кластерный анализ")
+        self.layout.addWidget(self.clustering_button)
+        self.clustering_button.clicked.connect(self.perform_clustering_from_text)
 
         # Добавляем новый виджет для отображения списка слов и их выбора
         self.lexeme_list_widget = QListWidget()
@@ -298,6 +307,33 @@ class TextAnalyzerApp(QMainWindow):
 
         # Устанавливаем созданную таблицу как центральный виджет
         self.setCentralWidget(table)
+
+    def perform_clustering(self, texts, n_clusters=3):
+        # Преобразование текста в числовые данные через TF-IDF
+        vectorizer = TfidfVectorizer(max_features=100)
+        X = vectorizer.fit_transform(texts).toarray()
+
+        # Применение KMeans для кластеризации
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        kmeans.fit(X)
+
+        # Получаем метки кластеров
+        labels = kmeans.labels_
+        return labels
+
+    def perform_clustering_from_text(self):
+        try:
+            # Подготовка текстов
+            lemmatized_texts = self.prepare_texts_for_factor_analysis()
+            # Выполнение кластерного анализа
+            labels = self.perform_clustering(lemmatized_texts)
+
+            # Отображение результатов
+            result = "\n".join([f"Документ {i + 1}: Кластер {label}" for i, label in enumerate(labels)])
+            self.result_display.setText(result)
+
+        except Exception as e:
+            self.result_display.setText(f"Ошибка при выполнении кластерного анализа: {str(e)}")
 
 
 if __name__ == "__main__":
