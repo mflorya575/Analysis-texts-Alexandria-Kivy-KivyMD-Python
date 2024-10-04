@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, QWidget, QTableWidget, QTableWidgetItem
 from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
@@ -182,12 +182,27 @@ class TextAnalyzerApp(QMainWindow):
             if len(self.texts) < 2:
                 raise ValueError("Для факторного анализа необходимо как минимум 2 текста.")
 
-            # Выполняем факторный анализ сразу для всех текстов
             df_factors = self.perform_factor_analysis(self.texts)
-            self.result_display.setText(f"Factor analysis results:\n{df_factors.to_string(index=False)}")
+            self.display_factor_analysis_results(df_factors)
 
         except Exception as e:
             self.result_display.setText(f"Ошибка при выполнении факторного анализа: {str(e)}")
+
+    def display_factor_analysis_results(self, df):
+        # Создаем QTableWidget для отображения результатов факторного анализа
+        table = QTableWidget()
+        table.setRowCount(df.shape[0])  # Количество строк = количество образцов (документов)
+        table.setColumnCount(df.shape[1])  # Количество столбцов = количество факторов
+        table.setHorizontalHeaderLabels([f"Factor {i + 1}" for i in range(df.shape[1])])
+
+        # Заполняем таблицу значениями
+        for i in range(df.shape[0]):
+            for j in range(df.shape[1]):
+                item = QTableWidgetItem(f"{df.iloc[i, j]:.6f}")
+                table.setItem(i, j, item)
+
+        # Устанавливаем созданную таблицу как центральный виджет
+        self.setCentralWidget(table)
 
 
 if __name__ == "__main__":
