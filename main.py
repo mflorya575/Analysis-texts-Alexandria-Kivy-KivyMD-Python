@@ -4,6 +4,7 @@ from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
 from nltk.corpus import wordnet
+import re
 
 
 # Указываем новый путь для данных NLTK
@@ -83,8 +84,11 @@ class TextAnalyzerApp(QMainWindow):
         return count
 
     def count_lexemes(self, text):
-        # Приводим текст к нижнему регистру и разделяем на слова
-        word_list = text.lower().split()
+        # Удаляем пунктуацию и приводим текст к нижнему регистру
+        cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
+
+        # Разбиваем текст на слова
+        word_list = cleaned_text.split()
 
         # Лемматизируем каждое слово для нормализации
         lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
@@ -97,7 +101,10 @@ class TextAnalyzerApp(QMainWindow):
             else:
                 lexeme_count[word] = 1
 
-        return lexeme_count
+        # Сортируем лексемы по убыванию их частоты
+        sorted_lexemes = sorted(lexeme_count.items(), key=lambda item: item[1], reverse=True)
+
+        return sorted_lexemes
 
     def analyze_text(self, text):
         # Анализ тональности
@@ -105,7 +112,6 @@ class TextAnalyzerApp(QMainWindow):
 
         # Получаем список синонимов для слова "happy"
         synonym_list = self.get_synonyms('happy')
-        # Добавляем дополнительные синонимы вручную
         synonym_list.update({'cheerful', 'joyful', 'blissful'})
 
         # Считаем синонимы в тексте
@@ -120,7 +126,7 @@ class TextAnalyzerApp(QMainWindow):
         analysis_result += "Lexeme counts:\n"
 
         # Добавляем лексемы и их количество в результат
-        for lexeme, count in lexeme_counts.items():
+        for lexeme, count in lexeme_counts:
             analysis_result += f"{lexeme} ({count})\n"
 
         self.result_display.setText(analysis_result)
