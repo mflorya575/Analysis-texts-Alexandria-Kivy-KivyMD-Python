@@ -37,11 +37,11 @@ class TextAnalyzerApp(QMainWindow):
         self.setWindowTitle("Alexandria")
         self.setGeometry(450, 200, 1000, 600)
         # Установка иконки окна
-        self.setWindowIcon(QIcon("media/sova.ico"))  # Убедитесь, что это .ico файл
+        self.setWindowIcon(QIcon("media/image.ico"))
 
         # Инициализация системного трея
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("media/sova.ico"))  # Убедитесь, что это .ico файл
+        self.tray_icon.setIcon(QIcon("media/image.ico"))
 
         # Создание контекстного меню для системного трея
         tray_menu = QMenu()
@@ -51,7 +51,7 @@ class TextAnalyzerApp(QMainWindow):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.show()  # Показать иконку в трее
 
-        # Create layout and widgets
+        # Сделать лэйаут и виджеты
         self.layout = QVBoxLayout()
         self.label = QLabel("Выберите файл/файлы для анализа:")
         self.button = QPushButton("Открыть файл/файлы")
@@ -79,7 +79,7 @@ class TextAnalyzerApp(QMainWindow):
         self.group_widget.setLayout(self.group_layout)
         self.layout.addWidget(self.group_widget)  # Добавляем в основной layout
 
-        # Add widgets to layout
+        # Добавляем виджеты в лэйаут
         self.layout.addWidget(self.label)
         self.layout.addWidget(self.button)
         self.layout.addWidget(self.sentiment_button)
@@ -380,7 +380,7 @@ class TextAnalyzerApp(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon("media/sova.ico"))
+    app.setWindowIcon(QIcon("media/image.ico"))
     window = TextAnalyzerApp()
     window.show()
     sys.exit(app.exec_())
