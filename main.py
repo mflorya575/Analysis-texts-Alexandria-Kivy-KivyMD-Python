@@ -87,12 +87,12 @@ class TextAnalyzerApp(QMainWindow):
         self.layout.addWidget(self.lexeme_button)
         self.layout.addWidget(self.result_display)
 
-        # Set central widget
+        # Установить центральный виджет
         container = QWidget()
         container.setLayout(self.layout)
         self.setCentralWidget(container)
 
-        # Connect buttons to functions
+        # Соединить кнопки с функциями
         self.button.clicked.connect(self.open_file)
         self.sentiment_button.clicked.connect(self.analyze_sentiment_from_text)
         self.synonym_button.clicked.connect(self.count_synonyms_from_text)
@@ -105,7 +105,7 @@ class TextAnalyzerApp(QMainWindow):
 
     def open_file(self):
         file_dialog = QFileDialog()
-        file_paths, _ = file_dialog.getOpenFileNames(self, "Open Text Files", "", "Text Files (*.txt)")
+        file_paths, _ = file_dialog.getOpenFileNames(self, "Открыть текстовые файлы", "", "Text Files (*.txt)")
 
         if file_paths:
             self.texts = []  # Сброс списка текстов
@@ -113,13 +113,14 @@ class TextAnalyzerApp(QMainWindow):
                 with open(file_path, 'r', encoding='utf-8') as file:
                     text = file.read()
                     self.texts.append(text)  # Добавляем текст в список
-                    self.result_display.append(f"Loaded text from: {file_path}\n{text}\n")  # Отображаем загруженный текст
+                    # Отображаем загруженный текст
+                    self.result_display.append(f"Тексты загружены с: {file_path}\n{text}\n")
 
     def add_to_group(self, word):
         group_name, ok = QInputDialog.getText(self, "Создать группу", f"Введите название группы для {word}:")
         if ok and group_name:
             if group_name not in self.word_groups:
-                self.word_groups[group_name] = []  # Исправлено
+                self.word_groups[group_name] = []
 
                 # Создаем плашку для новой группы
                 group_frame = QFrame()
@@ -213,7 +214,7 @@ class TextAnalyzerApp(QMainWindow):
 
         for text in self.texts:
             synonym_counts = self.count_synonyms(text, synonym_list)
-            result = f"Synonym counts in text:\n" + "\n".join([f"{synonym} ({count})" for synonym, count in synonym_counts.items() if count > 0])
+            result = f"Количество синонимов в тексте:\n" + "\n".join([f"{synonym} ({count})" for synonym, count in synonym_counts.items() if count > 0])
             results.append(result)
 
         self.result_display.setText("\n\n".join(results))
@@ -235,7 +236,7 @@ class TextAnalyzerApp(QMainWindow):
         for lexeme, count in all_lexemes.items():
             self.lexeme_list_widget.addItem(f"{lexeme} ({count})")
 
-    # Исправление функции подготовки текстов для факторного анализа
+    # Функция подготовки текстов для факторного анализа
     def prepare_texts_for_factor_analysis(self):
         lemmatized_texts = []
 
@@ -290,7 +291,6 @@ class TextAnalyzerApp(QMainWindow):
 
         return df, feature_names  # Возвращаем и DataFrame, и список признаков
 
-    # Изменяем метод для факторного анализа
     def perform_factor_analysis_from_text(self):
         try:
             grouped_texts = self.prepare_texts_for_factor_analysis()  # Подготавливаем тексты с учетом групп
