@@ -104,6 +104,9 @@ class TextAnalyzerApp(QMainWindow):
         self.lexeme_list_widget.itemClicked.connect(lambda item: self.add_to_group(item.text()))
 
     def open_file(self):
+        """
+        Открывает текстовые файлы, загружает их содержимое в программу и отображает результат.
+        """
         file_dialog = QFileDialog()
         file_paths, _ = file_dialog.getOpenFileNames(self, "Открыть текстовые файлы", "", "Text Files (*.txt)")
 
@@ -117,6 +120,10 @@ class TextAnalyzerApp(QMainWindow):
                     self.result_display.append(f"Тексты загружены с: {file_path}\n{text}\n")
 
     def add_to_group(self, word):
+        """
+        Добавляет выбранное слово в группу для последующего факторного анализа.
+        Если группа не существует, она создается. Также удаляет слово из общего списка лексем.
+        """
         group_name, ok = QInputDialog.getText(self, "Создать группу", f"Введите название группы для {word}:")
         if ok and group_name:
             if group_name not in self.word_groups:
@@ -148,8 +155,11 @@ class TextAnalyzerApp(QMainWindow):
                     self.lexeme_list_widget.takeItem(i)
                     break
 
-    # Функция для удаления группы
     def remove_group(self, group_name, group_frame):
+        """
+        Удаляет группу слов и соответствующую плашку из интерфейса.
+        Также удаляет группу из внутреннего словаря групп лексем.
+        """
         # Удаляем группу и плашку
         del self.word_groups[group_name]
         self.group_layout.removeWidget(group_frame)
@@ -157,6 +167,11 @@ class TextAnalyzerApp(QMainWindow):
         self.result_display.append(f"Группа '{group_name}' была удалена")
 
     def analyze_sentiment(self, text):
+        """
+        Анализирует текст на тональность (позитивная, негативная или нейтральная).
+        Использует библиотеку TextBlob для определения полярности текста.
+        Возвращает строку с результатом анализа тональности.
+        """
         blob = TextBlob(text)
         sentiment = blob.sentiment.polarity
         if sentiment > 0:
@@ -167,6 +182,10 @@ class TextAnalyzerApp(QMainWindow):
             return "Нейтральный"
 
     def get_synonyms(self, word):
+        """
+        Получает синонимы для указанного слова с использованием WordNet (NLTK).
+        Возвращает множество синонимов в нижнем регистре.
+        """
         synonyms = set()
         for syn in wordnet.synsets(word):
             for lemma in syn.lemmas():
@@ -174,6 +193,12 @@ class TextAnalyzerApp(QMainWindow):
         return synonyms
 
     def count_synonyms(self, text, synonym_list):
+        """
+        Считает количество вхождений синонимов из списка в данном тексте.
+        Очищает текст от пунктуации и переводит его в нижний регистр.
+        Использует лемматизацию для нормализации слов.
+        Возвращает словарь, где ключ — это синоним, а значение — количество вхождений.
+        """
         cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
         word_list = cleaned_text.split()
         lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
@@ -186,6 +211,12 @@ class TextAnalyzerApp(QMainWindow):
         return synonym_count
 
     def count_lexemes(self, text):
+        """
+        Считает количество лексем в тексте.
+        Очищает текст от пунктуации и переводит его в нижний регистр.
+        Использует лемматизацию для нормализации слов.
+        Возвращает отсортированный по убыванию список лексем и их количество в формате (лексема, количество).
+        """
         cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
         word_list = cleaned_text.split()
         lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
@@ -201,13 +232,25 @@ class TextAnalyzerApp(QMainWindow):
         return sorted_lexemes
 
     def analyze_sentiment_from_text(self):
+        """
+        Анализирует тональность всех загруженных текстов.
+        Для каждого текста вычисляется тональность (позитивная, негативная или нейтральная),
+        результат добавляется в список.
+        Выводит результаты анализа тональности в интерфейсе.
+        """
         results = []
         for text in self.texts:
             sentiment = self.analyze_sentiment(text)
-            results.append(f"Sentiment: {sentiment}")
+            results.append(f"Тональность: {sentiment}")
         self.result_display.setText("\n".join(results))
 
     def count_synonyms_from_text(self):
+        """
+        Считает количество указанных синонимов (например, для слова 'happy') в загруженных текстах.
+        Для каждого текста вычисляет, сколько раз встречаются синонимы из заранее
+        заданного списка (включая синонимы из WordNet).
+        Результаты выводятся в интерфейсе в виде списка, где указано количество каждого синонима.
+        """
         synonym_list = self.get_synonyms('happy')
         synonym_list.update({'cheerful', 'joyful', 'blissful'})
         results = []
@@ -219,8 +262,12 @@ class TextAnalyzerApp(QMainWindow):
 
         self.result_display.setText("\n\n".join(results))
 
-    # Изменение метода для отображения лексем с количеством упоминаний
     def count_lexemes_from_text(self):
+        """
+        Выводит количество лексем для всех загруженных текстов.
+        Лексемы сначала считаются для каждого текста отдельно, затем объединяются.
+        Отображает итоговый список лексем с количеством их упоминаний в интерфейсе.
+        """
         self.lexeme_list_widget.clear()  # Очищаем список перед новой загрузкой
         all_lexemes = {}
 
@@ -236,8 +283,12 @@ class TextAnalyzerApp(QMainWindow):
         for lexeme, count in all_lexemes.items():
             self.lexeme_list_widget.addItem(f"{lexeme} ({count})")
 
-    # Функция подготовки текстов для факторного анализа
     def prepare_texts_for_factor_analysis(self):
+        """
+        Подготавливает тексты для факторного анализа.
+        Очищает тексты от пунктуации, лемматизирует слова и заменяет слова, принадлежащие группам, на имя группы.
+        Возвращает список подготовленных текстов.
+        """
         lemmatized_texts = []
 
         for text in self.texts:
@@ -259,6 +310,12 @@ class TextAnalyzerApp(QMainWindow):
         return grouped_texts
 
     def perform_factor_analysis(self, texts):
+        """
+        Проводит факторный анализ на основе переданных текстов.
+        Использует метод главных компонент (PCA) после преобразования текстов в
+        числовые данные через TF-IDF векторизацию.
+        Возвращает DataFrame с результатами факторного анализа и список признаков (слов).
+        """
         if len(texts) < 2:
             raise ValueError("Недостаточно данных для факторного анализа (необходимо хотя бы 2 документа)")
 
@@ -292,6 +349,10 @@ class TextAnalyzerApp(QMainWindow):
         return df, feature_names  # Возвращаем и DataFrame, и список признаков
 
     def perform_factor_analysis_from_text(self):
+        """
+        Выполняет факторный анализ на основе загруженных и подготовленных текстов.
+        Отображает результаты в интерфейсе. В случае ошибки выводит сообщение об ошибке.
+        """
         try:
             grouped_texts = self.prepare_texts_for_factor_analysis()  # Подготавливаем тексты с учетом групп
             df_factors, feature_names = self.perform_factor_analysis(grouped_texts)
@@ -301,6 +362,10 @@ class TextAnalyzerApp(QMainWindow):
 
     # Отображение результатов в таблице
     def display_factor_analysis_results(self, df, feature_names):
+        """
+        Отображает результаты факторного анализа в виде таблицы.
+        Таблица включает факторные нагрузки для каждого документа и список признаков (слов).
+        """
         # Создаем QTableWidget для отображения результатов факторного анализа
         num_rows = df.shape[0]  # Количество строк = количество документов
         num_columns = df.shape[1] + 1  # +1 для первой колонки с признаками (словами)
@@ -327,6 +392,10 @@ class TextAnalyzerApp(QMainWindow):
         self.setCentralWidget(table)
 
     def perform_clustering(self, texts, n_clusters=3):
+        """
+        Выполняет кластеризацию текстов с использованием алгоритма KMeans.
+        Преобразует тексты в числовые векторы через TF-IDF и разделяет их на заданное количество кластеров.
+        """
         # Преобразование текста в числовые данные через TF-IDF
         vectorizer = TfidfVectorizer(max_features=100)
         X = vectorizer.fit_transform(texts).toarray()
@@ -340,6 +409,10 @@ class TextAnalyzerApp(QMainWindow):
         return labels
 
     def perform_clustering_from_text(self):
+        """
+        Выполняет кластеризацию на основе загруженных и подготовленных текстов.
+        Отображает документы, распределённые по кластерам. В случае ошибки выводит сообщение об ошибке.
+        """
         try:
             # Подготовка текстов
             lemmatized_texts = self.prepare_texts_for_factor_analysis()
@@ -354,6 +427,10 @@ class TextAnalyzerApp(QMainWindow):
             self.result_display.setText(f"Ошибка при выполнении кластерного анализа: {str(e)}")
 
     def display_documents_by_cluster(self, labels):
+        """
+        Отображает документы, распределенные по кластерам, с использованием HTML-форматирования для визуализации.
+        Каждому кластеру назначается определённый цвет для удобного различия.
+        """
         clusters = {}
 
         # Создаем кластеры и добавляем тексты
