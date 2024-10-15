@@ -21,10 +21,10 @@ import numpy as np
 
 
 # Указываем новый путь для данных NLTK
-nltk.data.path.append('C:/python/9_analys_texts/data/nltk_data')
+nltk.data.path.append('data/nltk_data')
 
 # Скачиваем нужные пакеты
-nltk.download('wordnet', download_dir='C:/python/9_analys_texts/data/nltk_data')
+nltk.download('wordnet', download_dir='data/nltk_data')
 nltk.download('omw-1.4')  # Чтобы WordNet мог работать с расширенным набором слов
 
 lemmatizer = WordNetLemmatizer()
