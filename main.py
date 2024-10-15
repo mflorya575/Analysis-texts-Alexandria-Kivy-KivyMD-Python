@@ -1,9 +1,11 @@
 import sys
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, \
-    QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog, QHBoxLayout, QFrame, QPushButton, \
-    QSystemTrayIcon, QMenu, QAction
+from PyQt5.QtWidgets import (
+    QMainWindow, QVBoxLayout, QLabel, QPushButton, QTextEdit,
+    QSystemTrayIcon, QMenu, QAction, QWidget, QListWidget, QTableWidget, QTableWidgetItem, QFileDialog, QApplication,
+    QInputDialog, QFrame, QHBoxLayout
+)
 from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
@@ -68,6 +70,10 @@ class TextAnalyzerApp(QMainWindow):
         self.clustering_button = QPushButton("Кластерный анализ")
         self.layout.addWidget(self.clustering_button)
         self.clustering_button.clicked.connect(self.perform_clustering_from_text)
+
+        self.multiple_analysis_button = QPushButton("Множественный анализ")
+        self.multiple_analysis_button.clicked.connect(self.perform_multiple_analysis)
+        self.layout.addWidget(self.multiple_analysis_button)
 
         # Добавляем новый виджет для отображения списка слов и их выбора
         self.lexeme_list_widget = QListWidget()
@@ -458,6 +464,26 @@ class TextAnalyzerApp(QMainWindow):
 
         # Устанавливаем HTML-содержимое в текстовое поле
         self.result_display.setHtml("\n".join(result))  # Объединяем результат для отображения
+
+    def perform_multiple_analysis(self):
+        """
+        Выполняет множественный анализ на основе загруженных текстов.
+        """
+        if not self.texts:
+            self.result_display.setText("Нет текстов для анализа.")
+            return
+
+        try:
+            # Пример: просто показываем длину текстов
+            analysis_results = []
+            for text in self.texts:
+                cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
+                word_count = len(cleaned_text.split())
+                analysis_results.append(f"Текст: {word_count} слов.")
+
+            self.result_display.setText("\n".join(analysis_results))
+        except Exception as e:
+            self.result_display.setText(f"Ошибка при выполнении анализа: {str(e)}")
 
 
 if __name__ == "__main__":
