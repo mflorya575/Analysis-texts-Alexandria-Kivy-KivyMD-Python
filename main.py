@@ -210,26 +210,6 @@ class TextAnalyzerApp(QMainWindow):
 
         return synonym_count
 
-    def count_lexemes(self, text):
-        """
-        Считает количество лексем в тексте.
-        Очищает текст от пунктуации и переводит его в нижний регистр.
-        Использует лемматизацию для нормализации слов.
-        Возвращает отсортированный по убыванию список лексем и их количество в формате (лексема, количество).
-        """
-        cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
-        word_list = cleaned_text.split()
-        lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
-
-        lexeme_count = {}
-        for word in lemmatized_words:
-            if word in lexeme_count:
-                lexeme_count[word] += 1
-            else:
-                lexeme_count[word] = 1
-
-        sorted_lexemes = sorted(lexeme_count.items(), key=lambda item: item[1], reverse=True)
-        return sorted_lexemes
 
     def analyze_sentiment_from_text(self):
         """
@@ -262,6 +242,28 @@ class TextAnalyzerApp(QMainWindow):
 
         self.result_display.setText("\n\n".join(results))
 
+
+    def count_lexemes(self, text):
+        """
+        Считает количество лексем в тексте.
+        Очищает текст от пунктуации и переводит его в нижний регистр.
+        Использует лемматизацию для нормализации слов.
+        Возвращает отсортированный по убыванию список лексем и их количество в формате (лексема, количество).
+        """
+        cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
+        word_list = cleaned_text.split()
+        lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
+
+        lexeme_count = {}
+        for word in lemmatized_words:
+            if word in lexeme_count:
+                lexeme_count[word] += 1
+            else:
+                lexeme_count[word] = 1
+
+        sorted_lexemes = sorted(lexeme_count.items(), key=lambda item: item[1], reverse=True)
+        return sorted_lexemes
+
     def count_lexemes_from_text(self):
         """
         Выводит количество лексем для всех загруженных текстов.
@@ -279,8 +281,11 @@ class TextAnalyzerApp(QMainWindow):
                 else:
                     all_lexemes[lexeme] = count  # Иначе добавляем её впервые
 
+        # Сортируем лексемы по убыванию их частоты
+        sorted_lexemes = sorted(all_lexemes.items(), key=lambda item: item[1], reverse=True)
+
         # Добавляем в список лексемы с количеством упоминаний
-        for lexeme, count in all_lexemes.items():
+        for lexeme, count in sorted_lexemes:
             self.lexeme_list_widget.addItem(f"{lexeme} ({count})")
 
     def prepare_texts_for_factor_analysis(self):
