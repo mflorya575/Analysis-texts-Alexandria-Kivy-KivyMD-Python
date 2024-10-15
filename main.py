@@ -1,4 +1,6 @@
 import sys
+import re
+from collections import Counter
 
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
@@ -10,7 +12,6 @@ from nltk import WordNetLemmatizer
 from textblob import TextBlob
 import nltk
 from nltk.corpus import wordnet
-import re
 
 # Факторный анализ
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -474,14 +475,38 @@ class TextAnalyzerApp(QMainWindow):
             return
 
         try:
-            # Пример: просто показываем длину текстов
-            analysis_results = []
+            overall_word_count = 0
+            all_words = []
+            sentiment_results = []
+
             for text in self.texts:
+                # Очистка текста
                 cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
-                word_count = len(cleaned_text.split())
-                analysis_results.append(f"Текст: {word_count} слов.")
+                words = cleaned_text.split()
+                word_count = len(words)
+                overall_word_count += word_count
+                all_words.extend(words)
+
+                # Анализ тональности
+                blob = TextBlob(text)
+                sentiment_results.append(blob.sentiment.polarity)
+
+            # Частотный анализ слов
+            word_freq = Counter(all_words)
+            most_common_words = word_freq.most_common(10)  # Топ-10 слов
+
+            # Формирование результатов анализа
+            analysis_results = []
+            analysis_results.append(f"Общее количество слов: {overall_word_count}.")
+            analysis_results.append("Топ-10 слов:")
+            for word, freq in most_common_words:
+                analysis_results.append(f"{word}: {freq}")
+
+            average_sentiment = sum(sentiment_results) / len(sentiment_results)
+            analysis_results.append(f"Средняя тональность: {average_sentiment:.2f}")
 
             self.result_display.setText("\n".join(analysis_results))
+
         except Exception as e:
             self.result_display.setText(f"Ошибка при выполнении анализа: {str(e)}")
 
