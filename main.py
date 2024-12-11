@@ -2,10 +2,7 @@ from kivy.metrics import dp
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
-from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
-from kivy.uix.gridlayout import GridLayout
-from kivy.graphics import Color, Rectangle
 
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
