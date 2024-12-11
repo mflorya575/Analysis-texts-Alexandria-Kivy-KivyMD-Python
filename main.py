@@ -201,10 +201,13 @@ class MyApp(MDApp):
         # Основной layout для вкладки "Словарь"
         main_layout = BoxLayout(orientation="vertical", spacing=5, padding=5)
 
-        # GridLayout для 4 полей
-        grid_layout = GridLayout(cols=2, rows=2, spacing=10, padding=5, size_hint=(1, 1))
+        # GridLayout для верхних элементов (кнопки и таблица)
+        top_layout = GridLayout(cols=2, spacing=10, padding=5, size_hint=(1, 0.5))
 
-        # 4 TextInput в grid layout с нужными размерами
+        # GridLayout для нижних текстовых полей
+        bottom_layout = GridLayout(cols=2, spacing=10, padding=5, size_hint=(1, 0.5))
+
+        # TextInput в левой верхней ячейке
         text_input_1 = TextInput(multiline=True, size_hint=(1, 1))
         text_input_1.text = "Слева сверху"
 
@@ -263,7 +266,7 @@ class MyApp(MDApp):
         left_top_layout = BoxLayout(
             orientation="vertical",
             spacing=5,
-            size_hint=(0.3, 1),
+            size_hint=(0.4, 1),
         )
 
         # Добавляем кнопки и текстовое поле в вертикальный layout
@@ -282,29 +285,41 @@ class MyApp(MDApp):
             use_pagination=True,  # Включаем пагинацию
         )
 
-        # Создаем контейнер для таблицы в правом верхнем углу
+        # Создаем контейнер для таблицы
         table_container = BoxLayout(orientation="vertical")
         table_container.add_widget(data_table)
 
-        # Добавляем таблицу в BoxLayout
-        right_top_layout = BoxLayout(orientation="vertical", size_hint=(0.8, 1))
-        right_top_layout.add_widget(table_container)
+        # Добавляем элементы в верхний layout
+        top_layout.add_widget(left_top_layout)
+        top_layout.add_widget(table_container)
 
-        # TextInput в левой нижней и правой нижней ячейках
-        text_input_3 = TextInput(multiline=True, size_hint=(0.3, 1))
+        # Кнопка между уровнями
+        middle_button = IconButtonWithTooltip(
+            icon="arrow-down",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#32CD32",
+            icon_size="10dp",
+            tooltip_text="Перенести выделенное",
+            size_hint=(None, None),
+            pos_hint={"center_x": 0.32},
+        )
+
+        # TextInput в нижнем левом углу
+        text_input_3 = TextInput(multiline=True, size_hint=(0.4, 1))
         text_input_3.text = "Слева снизу"
 
-        text_input_4 = TextInput(multiline=True, size_hint=(0.8, 1))
+        # TextInput в нижнем правом углу
+        text_input_4 = TextInput(multiline=True, size_hint=(1, 1))
         text_input_4.text = "Справа снизу"
 
-        # Добавляем элементы в grid layout
-        grid_layout.add_widget(left_top_layout)
-        grid_layout.add_widget(right_top_layout)
-        grid_layout.add_widget(text_input_3)
-        grid_layout.add_widget(text_input_4)
+        # Добавляем элементы в нижний layout
+        bottom_layout.add_widget(text_input_3)
+        bottom_layout.add_widget(text_input_4)
 
-        # Добавляем grid layout в основной layout
-        main_layout.add_widget(grid_layout)
+        # Добавляем верхний layout, кнопку и нижний layout в основной layout
+        main_layout.add_widget(top_layout)
+        main_layout.add_widget(middle_button)
+        main_layout.add_widget(bottom_layout)
 
         # Добавление основного layout в вкладку "Словарь"
         dictionary_tab.add_widget(main_layout)
