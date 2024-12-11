@@ -1,463 +1,785 @@
-import sys
+from kivy.uix.checkbox import CheckBox
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.popup import Popup
+from kivymd.app import MDApp
 
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QFileDialog, QTextEdit, QLabel, QVBoxLayout, \
-    QWidget, QTableWidget, QTableWidgetItem, QListWidget, QInputDialog, QHBoxLayout, QFrame, QPushButton, \
-    QSystemTrayIcon, QMenu, QAction
-from nltk import WordNetLemmatizer
-from textblob import TextBlob
-import nltk
-from nltk.corpus import wordnet
-import re
+from kivy.uix.stacklayout import StackLayout
+from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.gridlayout import GridLayout
 
-# Факторный анализ
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import PCA
-import pandas as pd
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.core.window import Window
+from kivymd.uix.button import MDIconButton, MDRectangleFlatButton
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.label import MDLabel
+from kivymd.uix.selectioncontrol import MDCheckbox
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.tooltip import MDTooltip
 
-# Кластерный анализ
-from sklearn.cluster import KMeans
-import numpy as np
-
-
-# Указываем новый путь для данных NLTK
-nltk.data.path.append('C:/python/9_analys_texts/data/nltk_data')
-
-# Скачиваем нужные пакеты
-nltk.download('wordnet', download_dir='C:/python/9_analys_texts/data/nltk_data')
-nltk.download('omw-1.4')  # Чтобы WordNet мог работать с расширенным набором слов
-
-lemmatizer = WordNetLemmatizer()
+from functools import partial
+import logging
 
 
-class TextAnalyzerApp(QMainWindow):
-    def __init__(self):
-        super().__init__()
+class HoverButton(Button):
+    """
+    Кнопка с изменением цвета при наведении.
+    """
 
-        self.setWindowTitle("Alexandria")
-        self.setGeometry(450, 200, 1000, 600)
-        # Установка иконки окна
-        self.setWindowIcon(QIcon("media/image.ico"))
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.background_normal = ''  # Убираем дефолтный фон
+        self.background_color = (0.5, 0.5, 0.5, 1)  # Белый фон
+        self.hover_color = (0.7, 0.7, 0.7, 1)  # Серый при наведении
+        self.default_color = self.background_color
 
-        # Инициализация системного трея
-        self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(QIcon("media/image.ico"))
+        # Привязываем события движения мыши
+        Window.bind(mouse_pos=self.on_mouse_pos)
 
-        # Создание контекстного меню для системного трея
-        tray_menu = QMenu()
-        exit_action = QAction("Выход", self)
-        exit_action.triggered.connect(self.close)
-        tray_menu.addAction(exit_action)
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.show()  # Показать иконку в трее
-
-        # Сделать лэйаут и виджеты
-        self.layout = QVBoxLayout()
-        self.label = QLabel("Выберите файл/файлы для анализа:")
-        self.button = QPushButton("Открыть файл/файлы")
-        self.sentiment_button = QPushButton("Тональность текста")
-        self.synonym_button = QPushButton("Синонимы")
-        self.lexeme_button = QPushButton("Лексемы")
-        self.result_display = QTextEdit()
-        self.result_display.setReadOnly(True)
-
-        self.factor_button = QPushButton("Факторный анализ")
-        self.layout.addWidget(self.factor_button)
-        self.factor_button.clicked.connect(self.perform_factor_analysis_from_text)
-
-        self.clustering_button = QPushButton("Кластерный анализ")
-        self.layout.addWidget(self.clustering_button)
-        self.clustering_button.clicked.connect(self.perform_clustering_from_text)
-
-        # Добавляем новый виджет для отображения списка слов и их выбора
-        self.lexeme_list_widget = QListWidget()
-        self.layout.addWidget(self.lexeme_list_widget)
-
-        # Виджет для отображения плашек групп
-        self.group_widget = QWidget()
-        self.group_layout = QVBoxLayout()
-        self.group_widget.setLayout(self.group_layout)
-        self.layout.addWidget(self.group_widget)  # Добавляем в основной layout
-
-        # Добавляем виджеты в лэйаут
-        self.layout.addWidget(self.label)
-        self.layout.addWidget(self.button)
-        self.layout.addWidget(self.sentiment_button)
-        self.layout.addWidget(self.synonym_button)
-        self.layout.addWidget(self.lexeme_button)
-        self.layout.addWidget(self.result_display)
-
-        # Установить центральный виджет
-        container = QWidget()
-        container.setLayout(self.layout)
-        self.setCentralWidget(container)
-
-        # Соединить кнопки с функциями
-        self.button.clicked.connect(self.open_file)
-        self.sentiment_button.clicked.connect(self.analyze_sentiment_from_text)
-        self.synonym_button.clicked.connect(self.count_synonyms_from_text)
-        self.lexeme_button.clicked.connect(self.count_lexemes_from_text)
-
-        self.texts = []  # Список для хранения текста из нескольких файлов
-        # В словарь для хранения групп слов
-        self.word_groups = {}
-        self.lexeme_list_widget.itemClicked.connect(lambda item: self.add_to_group(item.text()))
-
-    def open_file(self):
+    def on_mouse_pos(self, *args):
         """
-        Открывает текстовые файлы, загружает их содержимое в программу и отображает результат.
+        Отслеживаем позицию мыши.
         """
-        file_dialog = QFileDialog()
-        file_paths, _ = file_dialog.getOpenFileNames(self, "Открыть текстовые файлы", "", "Text Files (*.txt)")
+        if not self.get_parent_window():
+            return
+        pos = args[1]
+        if self.collide_point(*self.to_widget(*pos)):
+            self.background_color = self.hover_color
+        else:
+            self.background_color = self.default_color
 
-        if file_paths:
-            self.texts = []  # Сброс списка текстов
-            for file_path in file_paths:
+
+class IconButtonWithTooltip(MDIconButton, MDTooltip):
+    """
+    Класс кастомной кнопки для отображения текста при наведении на кнопку.
+    """
+    pass
+
+
+class MyApp(MDApp):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.fragments = {}  # Словарь для хранения фрагментов
+        self.files = {}
+        self.table_layout = None  # Контейнер для отображения таблицы
+        self.original_text = ""  # Переменная для хранения исходного текста
+        self.current_fragment_to_remove = None
+        self.dialog = None
+
+        # Настройка логгера
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)  # Уровень логирования (DEBUG для подробных сообщений)
+
+        # Создаем обработчик для записи логов в файл
+        handler = logging.FileHandler('app_log.log', encoding='utf-8')
+        handler.setLevel(logging.DEBUG)  # Уровень логирования для этого обработчика
+
+        # Создаем формат логов
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+
+        # Добавляем обработчик в логгер
+        self.logger.addHandler(handler)
+
+    def build(self):
+        self.texts = []
+        self.text_area = TextInput(
+            text="Нет текста", multiline=True, size_hint=(0.8, 1), readonly=True
+        )
+
+        # Основная панель с вкладками
+        tb = TabbedPanel(do_default_tab=False, tab_pos="top_left", tab_height=22)
+
+        # Вкладка "Фрагменты"
+        fragments_tab = TabbedPanelItem(
+            text="Фрагменты", font_size="12sp", size_hint=(None, None), width=50, height=22
+        )
+        layout = BoxLayout(orientation="vertical", spacing=10, padding=5)
+
+        # Используем StackLayout для кнопок
+        buttons_layout = StackLayout(orientation="lr-tb", size_hint_y=None, spacing=10, height=40)
+        button1 = IconButtonWithTooltip(
+            icon="folder-multiple-plus",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#35C0CD",
+            icon_size="10dp",
+            tooltip_text="Добавить текстов",
+        )
+        button1.bind(on_release=self.open_file_dialog)
+        button2 = IconButtonWithTooltip(
+            icon="content-save",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#35C0CD",
+            icon_size="10dp",
+            tooltip_text="Сохранить изменения",
+        )
+        button3 = IconButtonWithTooltip(
+            icon="checkbox-marked-circle-outline",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#35C0CD",
+            icon_size="10dp",
+            tooltip_text="Отметить всё",
+        )
+        button3.bind(on_release=self.select_all_checkboxes)
+        button4 = IconButtonWithTooltip(
+            icon="checkbox-marked-circle-minus-outline",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#35C0CD",
+            icon_size="10dp",
+            tooltip_text="Обратить отмеченное",
+        )
+        button4.bind(on_release=self.disable_all_checkboxes)
+        button5 = IconButtonWithTooltip(
+            icon="calculator",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#f2e66b",
+            icon_size="10dp",
+            tooltip_text="Обработка",
+        )
+        button5.bind(on_release=self.show_processing_dialog)
+        button6 = IconButtonWithTooltip(
+            icon="window-close",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#e33d3d",
+            icon_size="10dp",
+            tooltip_text="Удалить фрагмент",
+        )
+        button6.bind(on_release=self.delete_selected_fragments)
+        button7 = IconButtonWithTooltip(
+            icon="code-brackets",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#35C0CD",
+            icon_size="10dp",
+            tooltip_text="Разделить текст",
+        )
+        button7.bind(on_release=self.split_text)
+
+        buttons_layout.add_widget(button1)
+        buttons_layout.add_widget(button2)
+        buttons_layout.add_widget(button3)
+        buttons_layout.add_widget(button4)
+        buttons_layout.add_widget(button5)
+        buttons_layout.add_widget(button6)
+        buttons_layout.add_widget(button7)
+
+        # Добавляем кнопки в layout
+        layout.add_widget(buttons_layout)
+
+        # Основной лэйаут с таблицей и текстовым полем
+        main_layout = BoxLayout(orientation="horizontal", spacing=10)
+        self.table_layout = GridLayout(cols=4, size_hint=(0.4, 1), spacing=5)
+
+        # Устанавливаем начальные данные в таблице
+        self.initialize_table()
+
+        main_layout.add_widget(self.table_layout)
+        main_layout.add_widget(self.text_area)
+
+        layout.add_widget(main_layout)
+        fragments_tab.add_widget(layout)
+        tb.add_widget(fragments_tab)
+
+        # Вкладка "Фильтры"
+        filters_tab = TabbedPanelItem(
+            text="Фильтры", font_size="12sp", size_hint=(None, None), width=50, height=22
+        )
+        filters_tab.add_widget(Label(text="Настройка фильтров"))
+        tb.add_widget(filters_tab)
+
+        # Вкладка "Словарь"
+        dictionary_tab = TabbedPanelItem(
+            text="Словарь", font_size="12sp", size_hint=(None, None), width=50, height=22
+        )
+        dictionary_tab.add_widget(Label(text="Словарь и дополнительные функции"))
+        tb.add_widget(dictionary_tab)
+
+        return tb
+
+    ############################ Обработка ################################
+    def show_processing_dialog(self, *args):
+        # Создаем диалоговое окно выбора действия
+        if not self.dialog:
+            self.dialog = MDDialog(
+                title="Выберите действие:",
+                type="simple",
+                buttons=[
+                    MDRectangleFlatButton(
+                        text="Разбить на фрагменты",
+                        on_release=self.show_fragmentation_settings,  # Обработчик для кнопки
+                    ),
+                    MDRectangleFlatButton(
+                        text="Применить фильтры",
+                        on_release=self.apply_filters,
+                    ),
+                ],
+            )
+        self.dialog.open()
+
+    def show_processing_dialog(self, *args):
+        # Создаем диалоговое окно выбора действия
+        if not self.dialog:  # Проверяем, что диалог не открыт
+            self.dialog = MDDialog(
+                title="Выберите действие:",
+                type="simple",
+                buttons=[
+                    MDRectangleFlatButton(
+                        text="Разбить на фрагменты",
+                        on_release=self.show_fragmentation_settings,  # Обработчик для кнопки
+                    ),
+                    MDRectangleFlatButton(
+                        text="Применить фильтры",
+                        on_release=self.apply_filters,
+                    ),
+                ],
+            )
+        self.dialog.open()
+
+    def show_fragmentation_settings(self, *args):
+        print("Кнопка 'Разбить на фрагменты' нажата")
+
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None
+
+        def on_checkbox_active(instance, value):
+            print(f"{instance.id} активирован" if value else f"{instance.id} деактивирован")
+
+        # Сохранение ссылок на чекбоксы
+        self.checkbox_size = MDCheckbox(
+            size_hint=(None, None),
+            size=("48dp", "48dp"),
+            pos_hint={"center_y": 0.5},
+        )
+        self.checkbox_size.id = "checkbox_size"
+        self.checkbox_size.bind(active=on_checkbox_active)
+
+        self.checkbox_row = MDCheckbox(
+            size_hint=(None, None),
+            size=("48dp", "48dp"),
+            pos_hint={"center_y": 0.5},
+        )
+        self.checkbox_row.id = "checkbox_row"
+        self.checkbox_row.bind(active=on_checkbox_active)
+
+        # Создаем интерфейс диалога вручную
+        content = BoxLayout(
+            orientation="vertical",
+            spacing="20dp",
+            padding="20dp",
+            size_hint_y=None,
+            height="320dp"
+        )
+
+        row_layout = BoxLayout(orientation="horizontal", size_hint_y=None, height="30dp", spacing="10dp")
+        row_layout.add_widget(MDLabel(text="Разбить по строке", size_hint=(1, None), height="30dp"))
+        row_layout.add_widget(self.checkbox_row)
+
+        size_layout = BoxLayout(orientation="horizontal", size_hint_y=None, height="50dp", spacing="10dp")
+        size_layout.add_widget(MDLabel(text="Разбить по размеру", size_hint=(1, None), height="50dp"))
+        size_layout.add_widget(self.checkbox_size)
+
+        # Поля ввода
+        input_layout = BoxLayout(orientation="vertical", spacing="10dp", size_hint_y=None, padding="10dp")
+        target_input = MDTextField(hint_text="Пример: 50", size_hint=(1, None), height="50dp")
+        self.target_input = target_input
+        tolerance_input = MDTextField(hint_text="Пример: 20", size_hint=(1, None), height="50dp")
+        self.tolerance_input = tolerance_input
+
+        row_target_layout = BoxLayout(orientation="horizontal", spacing="10dp", size_hint_y=None, height="50dp")
+        row_target_layout.add_widget(MDLabel(text="Цель", size_hint=(None, None), size=("50dp", "50dp")))
+        row_target_layout.add_widget(target_input)
+
+        row_tolerance_layout = BoxLayout(orientation="horizontal", spacing="10dp", size_hint_y=None, height="50dp")
+        row_tolerance_layout.add_widget(MDLabel(text="+-", size_hint=(None, None), size=("50dp", "50dp")))
+        row_tolerance_layout.add_widget(tolerance_input)
+
+        input_layout.add_widget(row_target_layout)
+        input_layout.add_widget(row_tolerance_layout)
+
+        button_box = BoxLayout(size_hint_y=None, height="50dp", spacing=10)
+        ok_button = MDRectangleFlatButton(text="OK", on_release=self.confirm_fragmentation)
+        cancel_button = MDRectangleFlatButton(text="Отменить", on_release=self.cancel_dialog)
+        button_box.add_widget(ok_button)
+        button_box.add_widget(cancel_button)
+
+        content.add_widget(row_layout)
+        content.add_widget(size_layout)
+        content.add_widget(input_layout)
+        content.add_widget(button_box)
+
+        self.dialog = MDDialog(
+            title="Настройка фрагментатора",
+            type="custom",
+            content_cls=content,
+        )
+        self.dialog.open()
+
+    def apply_filters(self, *args):
+        # Логика применения фильтров
+        print("Применение фильтров")
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None  # Обнуляем ссылку на диалог
+
+    def confirm_fragmentation(self, *args):
+        print("Фрагментация настроена")
+
+        # Проверка чекбоксов
+        size_split = self.checkbox_size.active
+        row_split = self.checkbox_row.active
+
+        # Проверка значений в полях ввода
+        target = self.target_input.text
+        tolerance = self.tolerance_input.text
+
+        if not target.isdigit() or not tolerance.isdigit():
+            print("Некорректные значения в полях ввода")
+            return
+
+        target = int(target)
+        tolerance = int(tolerance)
+
+        # Получаем текст из text_area или из загруженных файлов
+        selected_texts = self.get_text_from_area_or_fragments()  # Функция для получения текста
+        print(f"Выбранные тексты: {selected_texts}")
+
+        if not selected_texts:
+            print("Не выбран текст для разбиения")
+            return
+
+        # Разбиение текста
+        fragmented_texts = []
+        for text in selected_texts:
+            print(f"Обрабатываем текст: {text}")
+            if row_split:
+                fragmented_texts.extend(text.splitlines())  # Разбиваем по строкам
+            elif size_split:
+                fragmented_texts.extend(self.split_by_size(text, target, tolerance))  # Разбиваем по размеру
+
+        print(f"Фрагментированные тексты: {fragmented_texts}")
+        # Обновляем таблицу слева и текстовую область справа
+        self.update_table_and_text_area(fragmented_texts)
+
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None
+
+    def get_text_from_area_or_fragments(self):
+        if self.text_area.text.strip() != 'Нет текста':  # Дополнительная проверка
+            print(f"Текст в text_area: '{self.text_area.text}'")
+            return [self.text_area.text]
+        else:
+            if self.texts:
+                selected_texts = [text for _, text in self.texts]
+                print(f"Тексты из загруженных файлов: {selected_texts}")
+                return selected_texts
+            print("Нет текста для разбиения.")
+            return []
+
+    def split_by_size(self, text, target, tolerance):
+        words = text.split()
+        fragments = []
+        current_fragment = []
+        word_count = 0
+
+        for word in words:
+            current_fragment.append(word)
+            word_count += 1
+
+            if word_count >= target:
+                fragments.append(" ".join(current_fragment))
+                current_fragment = []
+                word_count = 0
+
+        if current_fragment:
+            fragments.append(" ".join(current_fragment))
+
+        filtered_fragments = [frag for frag in fragments if len(frag.split()) >= tolerance]
+        print(f"Фрагменты после фильтрации: {filtered_fragments}")
+        return filtered_fragments
+
+    def get_selected_texts(self):
+        selected_texts = []
+        for row in self.table_layout.children:  # Проходим по всем виджетам в GridLayout
+            if isinstance(row, CheckBox) and row.active:
+                parent = row.parent
+                if parent:
+                    for child in parent.children:
+                        if isinstance(child, Label):
+                            text = child.text.strip()  # Добавляем текст метки
+                            if text:  # Проверяем, что текст не пустой
+                                print(f"Добавлен текст: '{text}'")
+                                selected_texts.append(text)
+        return selected_texts
+
+    def update_table_and_text_area(self, fragmented_texts):
+        """
+        Обновляет таблицу и текстовую область с новыми фрагментами.
+        Структурирует таблицу с заголовками "##", "Фрагмент", "Слов", "Выбрать".
+        """
+        # Очищаем таблицу и текстовую область
+        self.table_layout.clear_widgets()  # Очищаем все виджеты в таблице
+        self.text_area.clear_widgets()  # Очищаем текстовую область
+
+        # Добавляем заголовки в таблицу слева
+        headers = ["##", "Фрагмент", "Слов", "Выбрать"]
+        for header in headers:
+            self.table_layout.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
+
+        # Перебираем фрагментированные тексты
+        for idx, text in enumerate(fragmented_texts, start=1):
+            word_count = len(text.split())
+
+            # Создание и привязка кнопки с числовой нумерацией
+            button = Button(text=str(idx), size_hint_y=None, height=20)
+            button.bind(on_press=lambda btn, idx=idx: self.on_fragment_button_press(idx, fragmented_texts))
+            self.table_layout.add_widget(button)
+
+            # Создание и добавление метки с фрагментом
+            self.table_layout.add_widget(Label(text='txt', size_hint_y=None, height=20))
+
+            # Добавление метки с количеством слов
+            self.table_layout.add_widget(Label(text=str(word_count), size_hint_y=None, height=20))
+
+            # Создание чекбокса
+            check_box = CheckBox(size_hint_y=None, height=20)
+            self.table_layout.add_widget(check_box)
+
+            # Создание метки для текстовой области
+            self.text_area.add_widget(Label(text=text))
+
+    def on_fragment_button_press(self, idx, fragmented_texts):
+        """
+        Обработчик нажатия на кнопку фрагмента. Обновляет текстовое поле.
+        """
+        # Получаем текст фрагмента по индексу и обновляем текстовую область
+        selected_text = fragmented_texts[idx - 1]  # Индексация начинается с 1
+        self.text_area.text = selected_text  # Устанавливаем текст непосредственно в поле
+
+    def cancel_dialog(self, *args):
+        # Отмена диалога
+        print("Диалог отменен")
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None  # Обнуляем ссылку на диалог
+
+    #############################################################################
+
+    ############################ Стартовое состояние программы ################################
+    def initialize_table(self):
+        """
+        Устанавливает начальное состояние таблицы с заголовками и значением по умолчанию.
+        """
+        # Заголовки таблицы
+        headers = ["##", "Фрагмент", "Слов", "Выбрать"]
+        for header in headers:
+            self.table_layout.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
+
+        # Добавляем начальную строку с данными
+        self.table_layout.add_widget(Label(text="0", size_hint_y=None, height=20))
+        self.table_layout.add_widget(Label(text="Пустой", size_hint_y=None, height=20))
+        self.table_layout.add_widget(Label(text="2", size_hint_y=None, height=20))
+        self.table_layout.add_widget(CheckBox(size_hint_y=None, height=20))
+
+    #############################################################################
+
+    ############################ Загрузка файлов ################################
+    def open_file_dialog(self, instance):
+        """
+        Открывает диалог выбора файлов с поддержкой множественного выбора.
+        """
+        file_chooser = FileChooserIconView(filters=["*.txt"], multiselect=True)
+        popup_content = BoxLayout(orientation="vertical")
+        popup_content.add_widget(file_chooser)
+
+        # Создаем кнопку для подтверждения выбора файлов
+        confirm_button = Button(text="Загрузить файлы", size_hint_y=None, height=40)
+        confirm_button.bind(on_release=lambda btn: self.load_files(file_chooser.selection, popup))
+
+        popup_content.add_widget(confirm_button)
+
+        # Создаем попап и отображаем его
+        popup = Popup(title="Выберите файлы", content=popup_content, size_hint=(0.9, 0.9))
+        popup.open()
+
+    def load_files(self, file_paths, popup):
+        """
+        Загружает несколько текстовых файлов и добавляет их в таблицу.
+        """
+        popup.dismiss()  # Закрываем попап
+        self.texts = []  # Сброс списка текстов
+        self.table_layout.clear_widgets()  # Очищаем таблицу
+
+        # Заголовки таблицы
+        headers = ["##", "Фрагмент", "Слов", "Выбрать"]
+        for header in headers:
+            self.table_layout.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
+
+        # Логируем начало загрузки
+        self.logger.info("Начинаем загрузку файлов.")
+
+        # Добавляем строки таблицы
+        for i, file_path in enumerate(file_paths, start=1):
+            try:
                 with open(file_path, 'r', encoding='utf-8') as file:
-                    text = file.read()
-                    self.texts.append(text)  # Добавляем текст в список
-                    # Отображаем загруженный текст
-                    self.result_display.append(f"Тексты загружены с: {file_path}\n{text}\n")
+                    text = file.read().strip()  # Убираем лишние пробелы
+                    self.texts.append((file_path, text))  # Добавляем текст в список
 
-    def add_to_group(self, word):
+                    # Логируем успешную загрузку текста
+                    self.logger.debug(f"Файл загружен: {file_path}, текст длиной {len(text)} символов.")
+
+                    words_count = len(text.split())
+
+                    # Генерация короткого имени файла для отображения
+                    file_name = file_path.split("/")[-1]  # Получаем только имя файла
+                    if len(file_name) > 10:
+                        fragment = f"{file_name[:4]}..{file_name[-4:]}"  # Сокращённое название
+                    else:
+                        fragment = file_name  # Если имя короткое, используем его целиком
+
+                    # Используем partial для передачи правильного индекса в on_release
+                    button = Button(text=str(i), size_hint_y=None, height=20)
+                    button.bind(on_release=partial(self.display_text, i - 1))  # Передаем индекс
+
+                    # Чекбокс для выбора
+                    checkbox = CheckBox(size_hint_y=None, height=20)
+
+                    # Добавляем элементы в таблицу
+                    self.table_layout.add_widget(button)
+                    self.table_layout.add_widget(Label(text=fragment, size_hint_y=None, height=20))
+                    self.table_layout.add_widget(Label(text=str(words_count), size_hint_y=None, height=20))
+                    self.table_layout.add_widget(checkbox)
+
+            except Exception as e:
+                # Логируем ошибку при загрузке файла
+                self.logger.error(f"Ошибка при загрузке файла {file_path}: {e}")
+                self.text_area.text = f"Ошибка при загрузке файла {file_path}: {e}"
+
+        # Логируем состояние словаря self.texts после загрузки
+        self.logger.debug(f"Состояние self.texts после загрузки: {self.texts}")
+
+    def display_text(self, index, instance=None):
         """
-        Добавляет выбранное слово в группу для последующего факторного анализа.
-        Если группа не существует, она создается. Также удаляет слово из общего списка лексем.
+        Отображает текст выбранного файла.
         """
-        group_name, ok = QInputDialog.getText(self, "Создать группу", f"Введите название группы для {word}:")
-        if ok and group_name:
-            if group_name not in self.word_groups:
-                self.word_groups[group_name] = []
+        file_path, text = self.texts[index]
+        # Отображение текста в правом окне
+        self.text_area.text = f"{text}"
 
-                # Создаем плашку для новой группы
-                group_frame = QFrame()
-                group_layout = QHBoxLayout()
-                group_frame.setLayout(group_layout)
+    #############################################################################
 
-                group_label = QLabel(group_name)
-                remove_button = QPushButton('x')
-                remove_button.setFixedSize(20, 20)
+    ############################ Выделение чекбоксов ################################
+    def select_all_checkboxes(self, instance):
+        """
+        Отмечает все чекбоксы в таблице.
+        """
+        for child in self.table_layout.children:
+            if isinstance(child, CheckBox):
+                child.active = True  # Устанавливаем активное состояние для чекбоксов
 
-                group_layout.addWidget(group_label)
-                group_layout.addWidget(remove_button)
-                self.group_layout.addWidget(group_frame)
+    def disable_all_checkboxes(self, instance):
+        """
+        Убирает отметки всех чекбоксов в таблице.
+        """
+        for child in self.table_layout.children:
+            if isinstance(child, CheckBox):
+                child.active = False  # Устанавливаем НЕактивное состояние для чекбоксов
 
-                # Соединяем кнопку удаления с функцией
-                remove_button.clicked.connect(lambda _, grp=group_name: self.remove_group(grp, group_frame))
+    #############################################################################
 
-            # Добавляем слово в группу и удаляем его из списка лексем
-            self.word_groups[group_name].append(word)
-            self.result_display.append(f"Слово '{word}' добавлено в группу '{group_name}'")
+    ############################ Разделение фрагмента на 2 части по местоположению курсора ################################
+    def split_text(self, instance):
+        print("split_text called")
+        cursor_position = self.text_area.cursor_index()  # Получаем текущую позицию курсора
+        text = self.text_area.text.strip()
 
-            # Удаляем слово из списка лексем
-            for i in range(self.lexeme_list_widget.count()):
-                if self.lexeme_list_widget.item(i).text().startswith(word):
-                    self.lexeme_list_widget.takeItem(i)
+        if not text:
+            print("Text is empty, aborting split")
+            return
+
+        # Проверяем, является ли это фрагментом или загруженным файлом
+        original_key = None
+        is_file = False
+        for key, fragment_text in self.fragments.items():
+            if fragment_text == text:
+                original_key = key
+                break
+
+        if original_key is None:
+            # Проверяем среди файлов
+            for file_name, file_text in self.files.items():  # `self.files` — это словарь с загруженными файлами
+                if file_text == text:
+                    original_key = file_name  # Устанавливаем как имя файла
+                    is_file = True
                     break
 
-    def remove_group(self, group_name, group_frame):
-        """
-        Удаляет группу слов и соответствующую плашку из интерфейса.
-        Также удаляет группу из внутреннего словаря групп лексем.
-        """
-        # Удаляем группу и плашку
-        del self.word_groups[group_name]
-        self.group_layout.removeWidget(group_frame)
-        group_frame.deleteLater()
-        self.result_display.append(f"Группа '{group_name}' была удалена")
+        if original_key is None:
+            # Генерируем новый ключ и добавляем текст
+            original_key = f"frag.{len(self.fragments) + 1}"
+            self.fragments[original_key] = text
+            print(f"Added original text to fragments with key: {original_key}")
 
-    def analyze_sentiment(self, text):
-        """
-        Анализирует текст на тональность (позитивная, негативная или нейтральная).
-        Использует библиотеку TextBlob для определения полярности текста.
-        Возвращает строку с результатом анализа тональности.
-        """
-        blob = TextBlob(text)
-        sentiment = blob.sentiment.polarity
-        if sentiment > 0:
-            return "Позитивный"
-        elif sentiment < 0:
-            return "Негативный"
+        # Разделение текста
+        first_part = text[:cursor_position].strip()
+        second_part = text[cursor_position:].strip()
+
+        print("First part:", first_part)
+        print("Second part:", second_part)
+
+        if not first_part or not second_part:
+            print("One of the parts is empty, aborting split")
+            return
+
+        # Обновление для фрагмента
+        if not is_file:
+            # Удаляем исходный фрагмент из словаря
+            del self.fragments[original_key]
+
+            # Обновляем оригинальный ключ с первой частью
+            self.fragments[original_key] = first_part
+
+            # Создаем ключ для новой части
+            new_key = f"{original_key}.1"
+
+            # Добавляем новую часть
+            new_fragments = {
+                new_key: second_part,
+            }
+            self.fragments.update(new_fragments)
         else:
-            return "Нейтральный"
+            # Для файлов: обновляем содержимое файла
+            self.files[original_key] = first_part
+            new_key = f"{original_key}.1"
+            self.files[new_key] = second_part
 
-    def get_synonyms(self, word):
-        """
-        Получает синонимы для указанного слова с использованием WordNet (NLTK).
-        Возвращает множество синонимов в нижнем регистре.
-        """
-        synonyms = set()
-        for syn in wordnet.synsets(word):
-            for lemma in syn.lemmas():
-                synonyms.add(lemma.name().lower())
-        return synonyms
+        # Обновляем текст в text_area (оставляем первую часть)
+        self.text_area.text = first_part
 
-    def count_synonyms(self, text, synonym_list):
-        """
-        Считает количество вхождений синонимов из списка в данном тексте.
-        Очищает текст от пунктуации и переводит его в нижний регистр.
-        Использует лемматизацию для нормализации слов.
-        Возвращает словарь, где ключ — это синоним, а значение — количество вхождений.
-        """
-        cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
-        word_list = cleaned_text.split()
-        lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
+        print("Updated fragments/files:", self.fragments, self.files)
 
-        synonym_count = {synonym: 0 for synonym in synonym_list}
-        for word in lemmatized_words:
-            if word in synonym_count:
-                synonym_count[word] += 1
+        # Обновляем таблицу: удаляем оригинальный элемент и добавляем обе части
+        if is_file:
+            self.update_table(removed_key=original_key, new_fragments={original_key: first_part, new_key: second_part})
+        else:
+            self.update_table(removed_key=original_key, new_fragments={original_key: first_part, new_key: second_part})
 
-        return synonym_count
-
-    def count_lexemes(self, text):
+    def update_table(self, removed_key=None, new_fragments=None):
         """
-        Считает количество лексем в тексте.
-        Очищает текст от пунктуации и переводит его в нижний регистр.
-        Использует лемматизацию для нормализации слов.
-        Возвращает отсортированный по убыванию список лексем и их количество в формате (лексема, количество).
+        Обновляет таблицу: удаляет строку с `removed_key` и добавляет строки из `new_fragments`.
         """
-        cleaned_text = re.sub(r"[^\w\s]", "", text.lower())
-        word_list = cleaned_text.split()
-        lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
+        print("Updating table...")
+        print(f"Removed key: {removed_key}")
+        print(f"New fragments: {new_fragments}")
 
-        lexeme_count = {}
-        for word in lemmatized_words:
-            if word in lexeme_count:
-                lexeme_count[word] += 1
+        if removed_key:
+            # Удаляем строку, связанную с removed_key
+            widgets_to_remove = []
+            for i, child in enumerate(self.table_layout.children[:]):
+                widget_text = getattr(child, 'text', '').strip()
+                if widget_text == removed_key.strip():
+                    # Удаляем строку (4 виджета: кнопка, ключ, счетчик слов, чекбокс)
+                    widgets_to_remove.extend(self.table_layout.children[i:i + 4])
+                    break
+
+            if widgets_to_remove:
+                for widget in widgets_to_remove:
+                    print(f"Removing widget: {widget} | Text: {getattr(widget, 'text', 'No text')}")
+                    self.table_layout.remove_widget(widget)
             else:
-                lexeme_count[word] = 1
+                print(f"Key {removed_key} not found in table_layout!")
 
-        sorted_lexemes = sorted(lexeme_count.items(), key=lambda item: item[1], reverse=True)
-        return sorted_lexemes
+        if new_fragments:
+            # Добавляем новые строки для фрагментов или файлов
+            for key, fragment_text in new_fragments.items():
+                word_count = len(fragment_text.split())
 
-    def analyze_sentiment_from_text(self):
-        """
-        Анализирует тональность всех загруженных текстов.
-        Для каждого текста вычисляется тональность (позитивная, негативная или нейтральная),
-        результат добавляется в список.
-        Выводит результаты анализа тональности в интерфейсе.
-        """
-        results = []
-        for text in self.texts:
-            sentiment = self.analyze_sentiment(text)
-            results.append(f"Тональность: {sentiment}")
-        self.result_display.setText("\n".join(results))
-
-    def count_synonyms_from_text(self):
-        """
-        Считает количество указанных синонимов (например, для слова 'happy') в загруженных текстах.
-        Для каждого текста вычисляет, сколько раз встречаются синонимы из заранее
-        заданного списка (включая синонимы из WordNet).
-        Результаты выводятся в интерфейсе в виде списка, где указано количество каждого синонима.
-        """
-        synonym_list = self.get_synonyms('happy')
-        synonym_list.update({'cheerful', 'joyful', 'blissful'})
-        results = []
-
-        for text in self.texts:
-            synonym_counts = self.count_synonyms(text, synonym_list)
-            result = f"Количество синонимов в тексте:\n" + "\n".join([f"{synonym} ({count})" for synonym, count in synonym_counts.items() if count > 0])
-            results.append(result)
-
-        self.result_display.setText("\n\n".join(results))
-
-    def count_lexemes_from_text(self):
-        """
-        Выводит количество лексем для всех загруженных текстов.
-        Лексемы сначала считаются для каждого текста отдельно, затем объединяются.
-        Отображает итоговый список лексем с количеством их упоминаний в интерфейсе.
-        """
-        self.lexeme_list_widget.clear()  # Очищаем список перед новой загрузкой
-        all_lexemes = {}
-
-        for text in self.texts:
-            lexeme_counts = self.count_lexemes(text)
-            for lexeme, count in lexeme_counts:
-                if lexeme in all_lexemes:
-                    all_lexemes[lexeme] += count  # Если лексема уже есть, добавляем её частоту
+                # Проверяем, это фрагмент или файл
+                if key.startswith("frag"):
+                    # Это фрагмент текста
+                    button = Button(text=str(len(self.fragments)), size_hint_y=None, height=20)
+                    button.bind(
+                        on_press=lambda instance, text=fragment_text, key=key: self.view_fragment(text, instance, key)
+                    )
                 else:
-                    all_lexemes[lexeme] = count  # Иначе добавляем её впервые
+                    # Это файл
+                    button = Button(text=key, size_hint_y=None, height=20)
+                    button.bind(
+                        on_press=lambda instance, text=fragment_text, key=key: self.view_fragment(text, instance, key)
+                    )
 
-        # Добавляем в список лексемы с количеством упоминаний
-        for lexeme, count in all_lexemes.items():
-            self.lexeme_list_widget.addItem(f"{lexeme} ({count})")
+                # Добавляем новые виджеты в таблицу
+                self.table_layout.add_widget(button)
+                self.table_layout.add_widget(Label(text=key, size_hint_y=None, height=20))
+                self.table_layout.add_widget(Label(text=str(word_count), size_hint_y=None, height=20))
+                self.table_layout.add_widget(CheckBox(size_hint_y=None, height=20))
 
-    def prepare_texts_for_factor_analysis(self):
+                print(f"Added fragment/file: {key} with word count {word_count}")
+
+    def view_fragment(self, fragment_text, instance=None, fragment_key=None):
         """
-        Подготавливает тексты для факторного анализа.
-        Очищает тексты от пунктуации, лемматизирует слова и заменяет слова, принадлежащие группам, на имя группы.
-        Возвращает список подготовленных текстов.
+        Обработчик для отображения содержимого фрагмента текста.
+        Этот метод будет отображать фрагмент в text_area.
         """
-        lemmatized_texts = []
+        # Отображаем фрагмент в text_area
+        self.text_area.text = fragment_text
 
-        for text in self.texts:
-            cleaned_text = re.sub(r"[^\w\s]", "", text.lower())  # Убираем пунктуацию
-            word_list = cleaned_text.split()
-            lemmatized_words = [lemmatizer.lemmatize(word) for word in word_list]
-            lemmatized_texts.append(" ".join(lemmatized_words))
+        # Если это тот фрагмент, который мы разделили, удаляем его
+        if fragment_key == self.current_fragment_to_remove:
+            del self.fragments[fragment_key]
 
-        grouped_texts = []
+        # Обновляем таблицу, чтобы отобразить изменения
+        self.update_table()
 
-        for text in lemmatized_texts:
-            new_text = text
-            for group, words in self.word_groups.items():
-                for word in words:
-                    # Используем границы слов для точной замены
-                    new_text = re.sub(rf"\b{word}\b", group, new_text)
-            grouped_texts.append(new_text)
+    #############################################################################
 
-        return grouped_texts
+    ############################ Удаление фрагментов по выделенному чекбоксу ################################
+    def delete_selected_fragments(self, instance):
+        """Удаляет выбранные фрагменты, если активирован чекбокс."""
+        fragments_to_delete = []
 
-    def perform_factor_analysis(self, texts):
-        """
-        Проводит факторный анализ на основе переданных текстов.
-        Использует метод главных компонент (PCA) после преобразования текстов в
-        числовые данные через TF-IDF векторизацию.
-        Возвращает DataFrame с результатами факторного анализа и список признаков (слов).
-        """
-        if len(texts) < 2:
-            raise ValueError("Недостаточно данных для факторного анализа (необходимо хотя бы 2 документа)")
+        # Перебираем виджеты в таблице, чтобы найти все активированные чекбоксы
+        for i, widget in enumerate(self.table_layout.children[:]):
+            if isinstance(widget, CheckBox) and widget.active:  # Проверяем, выбран ли чекбокс
+                # Определяем индекс фрагмента, связанного с чекбоксом
+                fragment_index = i // 4
+                fragments_to_delete.append(fragment_index)
+                print(f"Fragment with index {fragment_index} marked for deletion.")
 
-        # Преобразование текста в числовые данные через TF-IDF
-        vectorizer = TfidfVectorizer(max_features=100)
+        # Удаляем выбранные фрагменты из словаря
+        removed_keys = []
+        for fragment_index in fragments_to_delete:
+            if fragment_index in self.fragments:
+                removed_key = list(self.fragments.keys())[fragment_index]  # Получаем ключ фрагмента
+                removed_keys.append(removed_key)
+                del self.fragments[removed_key]
+                print(f"Fragment with key {removed_key} deleted.")
 
-        try:
-            X = vectorizer.fit_transform(texts).toarray()  # Преобразуем сразу все тексты
-        except Exception as e:
-            raise ValueError(f"Ошибка при векторизации текстов: {str(e)}")
+        # Обновляем таблицу после удаления фрагментов
+        self.update_table_after_deletion(fragments_to_delete)  # Передаем список всех фрагментов для удаления
+        self.update_table()
 
-        n_samples, n_features = X.shape
-        n_components = min(n_samples, n_features)  # Количество факторов не должно превышать min(n_samples, n_features)
+    def update_table_after_deletion(self, fragments_to_delete):
+        """Обновляет таблицу после удаления фрагментов."""
+        widgets_to_remove = []
 
-        if n_components < 2:
-            raise ValueError("Недостаточно данных для факторного анализа после векторизации")
+        # Перебираем все виджеты в таблице
+        for i, widget in enumerate(self.table_layout.children[:]):
+            # Проверяем, принадлежит ли виджет фрагментам, которые мы собираемся удалить
+            if i // 4 in fragments_to_delete:  # Проверяем, связан ли виджет с фрагментом для удаления
+                widgets_to_remove.append(widget)
 
-        # Применение метода главных компонент (PCA)
-        try:
-            pca = PCA(n_components=n_components)  # Устанавливаем допустимое количество факторов
-            X_pca = pca.fit_transform(X)
-        except Exception as e:
-            raise ValueError(f"Ошибка при применении PCA: {str(e)}")
+        # Удаляем все виджеты, связанные с этими фрагментами
+        for widget in widgets_to_remove:
+            self.table_layout.remove_widget(widget)
 
-        # Получение признаков (слов)
-        feature_names = vectorizer.get_feature_names_out()
-
-        # Создание DataFrame для отображения результатов
-        df = pd.DataFrame(X_pca, columns=[f"Factor {i + 1}" for i in range(n_components)])
-
-        return df, feature_names  # Возвращаем и DataFrame, и список признаков
-
-    def perform_factor_analysis_from_text(self):
-        """
-        Выполняет факторный анализ на основе загруженных и подготовленных текстов.
-        Отображает результаты в интерфейсе. В случае ошибки выводит сообщение об ошибке.
-        """
-        try:
-            grouped_texts = self.prepare_texts_for_factor_analysis()  # Подготавливаем тексты с учетом групп
-            df_factors, feature_names = self.perform_factor_analysis(grouped_texts)
-            self.display_factor_analysis_results(df_factors, feature_names)
-        except Exception as e:
-            self.result_display.setText(f"Ошибка при выполнении факторного анализа: {str(e)}")
-
-    # Отображение результатов в таблице
-    def display_factor_analysis_results(self, df, feature_names):
-        """
-        Отображает результаты факторного анализа в виде таблицы.
-        Таблица включает факторные нагрузки для каждого документа и список признаков (слов).
-        """
-        # Создаем QTableWidget для отображения результатов факторного анализа
-        num_rows = df.shape[0]  # Количество строк = количество документов
-        num_columns = df.shape[1] + 1  # +1 для первой колонки с признаками (словами)
-
-        table = QTableWidget()
-        table.setRowCount(num_rows)  # Устанавливаем количество строк (количество документов)
-        table.setColumnCount(num_columns)  # Устанавливаем количество колонок (количество факторов + 1 для слов)
-
-        # Устанавливаем заголовки столбцов для факторов
-        table.setHorizontalHeaderLabels(["Фактор. нагрузки"] + [f"Factor {i + 1}" for i in range(df.shape[1])])
-
-        # Заполняем первую колонку (слева) словами (признаками)
-        for i, word in enumerate(feature_names):
-            item = QTableWidgetItem(word)
-            table.setItem(i, 0, item)  # Признаки будут в первой колонке (индекс 0)
-
-        # Заполняем таблицу значениями факторного анализа
-        for i in range(df.shape[0]):  # Для каждой строки документа
-            for j in range(df.shape[1]):  # Для каждого фактора
-                item = QTableWidgetItem(f"{df.iloc[i, j]:.6f}")
-                table.setItem(i, j + 1, item)  # Числа начинаются со второго столбца
-
-        # Устанавливаем созданную таблицу как центральный виджет
-        self.setCentralWidget(table)
-
-    def perform_clustering(self, texts, n_clusters=3):
-        """
-        Выполняет кластеризацию текстов с использованием алгоритма KMeans.
-        Преобразует тексты в числовые векторы через TF-IDF и разделяет их на заданное количество кластеров.
-        """
-        # Преобразование текста в числовые данные через TF-IDF
-        vectorizer = TfidfVectorizer(max_features=100)
-        X = vectorizer.fit_transform(texts).toarray()
-
-        # Применение KMeans для кластеризации
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans.fit(X)
-
-        # Получаем метки кластеров
-        labels = kmeans.labels_
-        return labels
-
-    def perform_clustering_from_text(self):
-        """
-        Выполняет кластеризацию на основе загруженных и подготовленных текстов.
-        Отображает документы, распределённые по кластерам. В случае ошибки выводит сообщение об ошибке.
-        """
-        try:
-            # Подготовка текстов
-            lemmatized_texts = self.prepare_texts_for_factor_analysis()
-
-            # Выполнение кластерного анализа
-            labels = self.perform_clustering(lemmatized_texts)
-
-            # Отображение документов по кластерам
-            self.display_documents_by_cluster(labels)  # Вызываем функцию для отображения содержимого документов
-
-        except Exception as e:
-            self.result_display.setText(f"Ошибка при выполнении кластерного анализа: {str(e)}")
-
-    def display_documents_by_cluster(self, labels):
-        """
-        Отображает документы, распределенные по кластерам, с использованием HTML-форматирования для визуализации.
-        Каждому кластеру назначается определённый цвет для удобного различия.
-        """
-        clusters = {}
-
-        # Создаем кластеры и добавляем тексты
-        for i, label in enumerate(labels):
-            if label not in clusters:
-                clusters[label] = []
-            clusters[label].append(f"Документ {i + 1}: {self.texts[i]}")  # Добавляем содержимое документа с его номером
-
-        result = []
-        # Определяем цвета для кластеров
-        cluster_colors = ["#FFDDC1", "#C1E1FF", "#D4FFC1", "#FFF1C1", "#C1C1FF"]
-
-        for idx, (cluster, docs) in enumerate(clusters.items()):
-            color = cluster_colors[
-                idx % len(cluster_colors)]  # Используем цвет из списка, если кластеров больше, чем цветов
-            # Добавляем заголовок для каждого кластера с цветом
-            result.append(f"<div style='background-color: {color}; padding: 10px; border-radius: 5px;'>" +
-                          f"<strong>Кластер {cluster}</strong><br>" + "<br>".join(docs) +
-                          "</div><br>")  # Добавляем разделитель
-
-        # Устанавливаем HTML-содержимое в текстовое поле
-        self.result_display.setHtml("\n".join(result))  # Объединяем результат для отображения
+    def get_fragment_index_from_checkbox(self, checkbox):
+        """Получает индекс фрагмента, связанного с чекбоксом."""
+        # Логика для получения индекса фрагмента, связанного с чекбоксом
+        return self.table_layout.children.index(checkbox) // 4
+    #############################################################################
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon("media/image.ico"))
-    window = TextAnalyzerApp()
-    window.show()
-    sys.exit(app.exec_())
+    MyApp().run()
