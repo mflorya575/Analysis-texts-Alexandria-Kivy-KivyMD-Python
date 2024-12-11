@@ -269,15 +269,15 @@ class MyApp(MDApp):
             spacing="20dp",
             padding="20dp",
             size_hint_y=None,
-            height="320dp"
+            height="350dp"
         )
 
         row_layout = BoxLayout(orientation="horizontal", size_hint_y=None, height="30dp", spacing="10dp")
         row_layout.add_widget(MDLabel(text="Разбить по строке", size_hint=(1, None), height="30dp"))
         row_layout.add_widget(self.checkbox_row)
 
-        size_layout = BoxLayout(orientation="horizontal", size_hint_y=None, height="50dp", spacing="10dp")
-        size_layout.add_widget(MDLabel(text="Разбить по размеру", size_hint=(1, None), height="50dp"))
+        size_layout = BoxLayout(orientation="horizontal", size_hint_y=None, height="70dp", spacing="10dp")
+        size_layout.add_widget(MDLabel(text="Разбить по размеру", size_hint=(1, None), height="70dp"))
         size_layout.add_widget(self.checkbox_size)
 
         # Поля ввода
