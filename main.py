@@ -1,7 +1,10 @@
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
+from kivy.uix.gridlayout import GridLayout
+from kivy.graphics import Color, Rectangle
 
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
@@ -192,7 +195,37 @@ class MyApp(MDApp):
         dictionary_tab = TabbedPanelItem(
             text="Словарь", font_size="12sp", size_hint=(None, None), width=50, height=22
         )
-        dictionary_tab.add_widget(Label(text="Словарь и дополнительные функции"))
+
+        # Основной layout для вкладки "Словарь"
+        main_layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
+
+        # GridLayout для 4 полей
+        grid_layout = GridLayout(cols=2, rows=2, spacing=10, padding=10, size_hint=(1, 1))
+
+        # 4 TextInput в grid layout с нужными размерами
+        text_input_1 = TextInput(multiline=True, size_hint=(0.3, 1))
+        text_input_1.text = "Слева сверху"
+
+        text_input_2 = TextInput(multiline=True, size_hint=(0.8, 1))
+        text_input_2.text = "Справа сверху"
+
+        text_input_3 = TextInput(multiline=True, size_hint=(0.3, 1))
+        text_input_3.text = "Слева снизу"
+
+        text_input_4 = TextInput(multiline=True, size_hint=(0.8, 1))
+        text_input_4.text = "Справа снизу"
+
+        # Добавляем текстовые поля в grid layout
+        grid_layout.add_widget(text_input_1)
+        grid_layout.add_widget(text_input_2)
+        grid_layout.add_widget(text_input_3)
+        grid_layout.add_widget(text_input_4)
+
+        # Добавляем grid layout в основной layout
+        main_layout.add_widget(grid_layout)
+
+        # Добавление основного layout в вкладку "Словарь"
+        dictionary_tab.add_widget(main_layout)
         tb.add_widget(dictionary_tab)
 
         return tb
