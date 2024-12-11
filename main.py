@@ -16,6 +16,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.core.window import Window
 from kivymd.uix.button import MDIconButton, MDRectangleFlatButton
+from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
 from kivymd.uix.selectioncontrol import MDCheckbox
@@ -206,7 +207,24 @@ class MyApp(MDApp):
         text_input_1 = TextInput(multiline=True, size_hint=(0.3, 1))
         text_input_1.text = "Слева сверху"
 
-        text_input_2 = TextInput(multiline=True, size_hint=(0.8, 1))
+        # Вставляем MDDataTable в TextInput (справа сверху)
+        data_table = MDDataTable(
+            size_hint=(1, 1),
+            column_data=[
+                ("Лексема", 34),
+                ("Частота", 34),
+                ("Длина", 34),
+            ],
+            row_data=[(f"Лексема {i}", str(i * 10), str(len(f"Лексема {i}"))) for i in range(1, 11)],
+            use_pagination=True,  # Включаем пагинацию
+        )
+
+        # Создаем контейнер для таблицы в правом верхнем углу
+        table_container = BoxLayout(orientation="vertical")
+        table_container.add_widget(data_table)
+
+        text_input_2 = BoxLayout(orientation="vertical", size_hint=(0.8, 1))
+        text_input_2.add_widget(table_container)  # Вставляем таблицу в text_input_2
         text_input_2.text = "Справа сверху"
 
         text_input_3 = TextInput(multiline=True, size_hint=(0.3, 1))
