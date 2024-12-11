@@ -284,25 +284,54 @@ class MyApp(MDApp):
             row_data=[(f"Лексема {i}", str(i * 10), str(len(f"Лексема {i}"))) for i in range(1, 11)],
             use_pagination=True,  # Включаем пагинацию
         )
+        # Кнопка над таблицей
+        table_button = IconButtonWithTooltip(
+            icon="folder-file",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#FFDEAD",
+            icon_size="10dp",
+            tooltip_text="Создать именованные папки из выделенного",
+            size_hint=(None, None),
+        )
 
         # Создаем контейнер для таблицы
-        table_container = BoxLayout(orientation="vertical")
-        table_container.add_widget(data_table)
+        right_top_layout = BoxLayout(orientation="vertical")
+        right_top_layout.add_widget(table_button)
+        right_top_layout.add_widget(data_table)
 
         # Добавляем элементы в верхний layout
         top_layout.add_widget(left_top_layout)
-        top_layout.add_widget(table_container)
+        top_layout.add_widget(right_top_layout)
 
-        # Кнопка между уровнями
-        middle_button = IconButtonWithTooltip(
+        # Горизонтальный BoxLayout для кнопок между уровнями
+        middle_buttons_layout = BoxLayout(
+            orientation="horizontal",
+            spacing=10,  # Пробел между кнопками
+            size_hint=(1, None),  # Растянуть по ширине
+            height=40,  # Высота кнопок
+            pos_hint={"center_x": 0.8},
+        )
+        # Кнопки между уровнями
+        middle_button_1 = IconButtonWithTooltip(
             icon="arrow-down",
             icon_color=(0.5, 0.5, 1, 1),
             md_bg_color="#32CD32",
             icon_size="10dp",
             tooltip_text="Перенести выделенное",
             size_hint=(None, None),
-            pos_hint={"center_x": 0.32},
         )
+        middle_button_2 = IconButtonWithTooltip(
+            icon="arrow-up",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#32CD32",
+            icon_size="10dp",
+            tooltip_text="Перенести выделенное",
+            size_hint=(None, None),
+        )
+
+        # Добавляем кнопки в горизонтальный layout
+        middle_buttons_layout.add_widget(middle_button_1)
+        middle_buttons_layout.add_widget(middle_button_2)
 
         # TextInput в нижнем левом углу
         text_input_3 = TextInput(multiline=True, size_hint=(0.4, 1))
@@ -318,7 +347,7 @@ class MyApp(MDApp):
 
         # Добавляем верхний layout, кнопку и нижний layout в основной layout
         main_layout.add_widget(top_layout)
-        main_layout.add_widget(middle_button)
+        main_layout.add_widget(middle_buttons_layout)
         main_layout.add_widget(bottom_layout)
 
         # Добавление основного layout в вкладку "Словарь"
