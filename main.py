@@ -1,3 +1,4 @@
+from kivy.metrics import dp
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
@@ -198,22 +199,84 @@ class MyApp(MDApp):
         )
 
         # Основной layout для вкладки "Словарь"
-        main_layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
+        main_layout = BoxLayout(orientation="vertical", spacing=5, padding=5)
 
         # GridLayout для 4 полей
-        grid_layout = GridLayout(cols=2, rows=2, spacing=10, padding=10, size_hint=(1, 1))
+        grid_layout = GridLayout(cols=2, rows=2, spacing=10, padding=5, size_hint=(1, 1))
 
         # 4 TextInput в grid layout с нужными размерами
-        text_input_1 = TextInput(multiline=True, size_hint=(0.3, 1))
+        text_input_1 = TextInput(multiline=True, size_hint=(1, 1))
         text_input_1.text = "Слева сверху"
 
-        # Вставляем MDDataTable в TextInput (справа сверху)
+        # Создаем кнопки
+        button_dict_1 = IconButtonWithTooltip(
+            icon="file-document-outline",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#DCDCDC",
+            icon_size="10dp",
+            tooltip_text="Создать новый словарь",
+        )
+        button_dict_2 = IconButtonWithTooltip(
+            icon="folder-file",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#FFFACD",
+            icon_size="10dp",
+            tooltip_text="Создать новую папку",
+        )
+        button_dict_3 = IconButtonWithTooltip(
+            icon="file-refresh-outline",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#98FB98",
+            icon_size="10dp",
+            tooltip_text="Добавить папку как новый фильтр",
+        )
+        button_dict_4 = IconButtonWithTooltip(
+            icon="reply-all",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#00FA9A",
+            icon_size="10dp",
+            tooltip_text="Добавить все папки как новые фильтры",
+        )
+        button_dict_5 = IconButtonWithTooltip(
+            icon="window-close",
+            icon_color=(0.5, 0.5, 1, 1),
+            md_bg_color="#e33d3d",
+            icon_size="10dp",
+            tooltip_text="Удалить выделенное",
+        )
+        # Горизонтальный layout для кнопок
+        buttons_layout = BoxLayout(
+            orientation="horizontal",
+            spacing=5,
+            size_hint=(1, None),
+            height=40,  # Высота для кнопок
+        )
+
+        # Добавляем кнопки в горизонтальный layout
+        buttons_layout.add_widget(button_dict_1)
+        buttons_layout.add_widget(button_dict_2)
+        buttons_layout.add_widget(button_dict_3)
+        buttons_layout.add_widget(button_dict_4)
+        buttons_layout.add_widget(button_dict_5)
+
+        # Вертикальный layout для кнопок и текстового поля
+        left_top_layout = BoxLayout(
+            orientation="vertical",
+            spacing=5,
+            size_hint=(0.3, 1),
+        )
+
+        # Добавляем кнопки и текстовое поле в вертикальный layout
+        left_top_layout.add_widget(buttons_layout)
+        left_top_layout.add_widget(text_input_1)
+
+        # Вставляем MDDataTable в правую верхнюю ячейку
         data_table = MDDataTable(
             size_hint=(1, 1),
             column_data=[
-                ("Лексема", 34),
-                ("Частота", 34),
-                ("Длина", 34),
+                ("Лексема", dp(30)),
+                ("Частота", dp(30)),
+                ("Длина", dp(30)),
             ],
             row_data=[(f"Лексема {i}", str(i * 10), str(len(f"Лексема {i}"))) for i in range(1, 11)],
             use_pagination=True,  # Включаем пагинацию
@@ -223,19 +286,20 @@ class MyApp(MDApp):
         table_container = BoxLayout(orientation="vertical")
         table_container.add_widget(data_table)
 
-        text_input_2 = BoxLayout(orientation="vertical", size_hint=(0.8, 1))
-        text_input_2.add_widget(table_container)  # Вставляем таблицу в text_input_2
-        text_input_2.text = "Справа сверху"
+        # Добавляем таблицу в BoxLayout
+        right_top_layout = BoxLayout(orientation="vertical", size_hint=(0.8, 1))
+        right_top_layout.add_widget(table_container)
 
+        # TextInput в левой нижней и правой нижней ячейках
         text_input_3 = TextInput(multiline=True, size_hint=(0.3, 1))
         text_input_3.text = "Слева снизу"
 
         text_input_4 = TextInput(multiline=True, size_hint=(0.8, 1))
         text_input_4.text = "Справа снизу"
 
-        # Добавляем текстовые поля в grid layout
-        grid_layout.add_widget(text_input_1)
-        grid_layout.add_widget(text_input_2)
+        # Добавляем элементы в grid layout
+        grid_layout.add_widget(left_top_layout)
+        grid_layout.add_widget(right_top_layout)
         grid_layout.add_widget(text_input_3)
         grid_layout.add_widget(text_input_4)
 
