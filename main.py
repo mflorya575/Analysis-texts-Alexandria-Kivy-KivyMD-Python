@@ -629,7 +629,7 @@ class MyApp(MDApp):
         self.table_layout.add_widget(Label(text="0", size_hint_y=None, height=20))
         self.table_layout.add_widget(Label(text="Пустой", size_hint_y=None, height=20))
         self.table_layout.add_widget(Label(text="2", size_hint_y=None, height=20))
-        self.table_layout.add_widget(CheckBox(size_hint_y=None, height=20))
+        #self.table_layout.add_widget(CheckBox(size_hint_y=None, height=20))
 
     #############################################################################
 
