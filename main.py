@@ -31,6 +31,8 @@ import logging
 from threading import Thread
 from kivy.clock import Clock
 
+from table_components_functions.start_program import initialize_table
+
 
 class HoverButton(Button):
     """
@@ -180,8 +182,8 @@ class MyApp(MDApp):
         main_layout = BoxLayout(orientation="horizontal", spacing=10)
         self.table_layout = GridLayout(cols=4, size_hint=(0.4, 1), spacing=5)
 
-        # Устанавливаем начальные данные в таблице
-        self.initialize_table()
+        # Инициализация таблицы через функцию
+        initialize_table(self.table_layout)
 
         main_layout.add_widget(self.table_layout)
         main_layout.add_widget(self.text_area)
@@ -677,23 +679,6 @@ class MyApp(MDApp):
 
     #############################################################################
 
-    ############################ Стартовое состояние программы ################################
-    def initialize_table(self):
-        """
-        Устанавливает начальное состояние таблицы с заголовками и значением по умолчанию.
-        """
-        # Заголовки таблицы
-        headers = ["##", "Фрагмент", "Слов", "Выбрать"]
-        for header in headers:
-            self.table_layout.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
-
-        # Добавляем начальную строку с данными
-        self.table_layout.add_widget(Label(text="0", size_hint_y=None, height=20))
-        self.table_layout.add_widget(Label(text="Пустой", size_hint_y=None, height=20))
-        self.table_layout.add_widget(Label(text="2", size_hint_y=None, height=20))
-        #self.table_layout.add_widget(CheckBox(size_hint_y=None, height=20))
-
-    #############################################################################
 
     ############################ Загрузка файлов ################################
     def open_file_dialog(self, instance):
