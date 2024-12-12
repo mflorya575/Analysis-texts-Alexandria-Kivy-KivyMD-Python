@@ -1,3 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
+from itertools import chain
+
 from kivy.metrics import dp
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.filechooser import FileChooserIconView
@@ -470,7 +473,7 @@ class MyApp(MDApp):
         """Отображает прелоадер"""
         self.preloader = Popup(
             title="Выполняется обработка...",
-            content=Label(text="Подождите, идет обработка текста..."),
+            content=Label(text="Подождите, идет обработка фрагментов..."),
             size_hint=(0.5, 0.5),
             auto_dismiss=False,
         )
@@ -518,18 +521,49 @@ class MyApp(MDApp):
             daemon=True
         ).start()
 
+    def split_by_size(self, text_iterable, target, tolerance):
+        if not text_iterable:
+            return
+        buffer = []
+        for word in text_iterable:
+            buffer.append(word)
+            if len(buffer) >= target:
+                yield " ".join(buffer)
+                buffer = []
+        if buffer and len(buffer) >= tolerance:
+            yield " ".join(buffer)
+
+    def process_large_texts(self, selected_texts, target, tolerance, max_workers=1500):
+        """
+        Параллельная фрагментация больших текстов.
+        :param selected_texts: Список текстов для фрагментации.
+        :param target: Желаемое количество слов в одном фрагменте.
+        :param tolerance: Минимальное количество слов для включения фрагмента в результат.
+        :param max_workers: Количество потоков для параллельной обработки.
+        :return: Список фрагментированных текстов.
+        """
+
+        def fragment_text(text):
+            # Проверяем длину текста и ограничиваем обработку
+            if len(text.split()) > target * 10:  # Примерное ограничение
+                print("Обрабатывается большой текст...")
+            return list(self.split_by_size(text.split(), target, tolerance))
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = executor.map(fragment_text, selected_texts)
+        return list(chain.from_iterable(results))  # Сразу объединяем фрагменты
+
     def _fragment_texts_in_thread(self, selected_texts, size_split, row_split, target, tolerance):
         """
         Выполняет фрагментацию текста в отдельном потоке и обновляет интерфейс.
         """
-        fragmented_texts = []
+        from itertools import chain
 
-        for text in selected_texts:
-            print(f"Обрабатываем текст: {text}")
-            if row_split:
-                fragmented_texts.extend(text.splitlines())  # Разбиваем по строкам
-            elif size_split:
-                fragmented_texts.extend(self.split_by_size(text, target, tolerance))  # Разбиваем по размеру
+        fragmented_texts = []
+        if size_split:
+            fragmented_texts = self.process_large_texts(selected_texts, target, tolerance)
+        elif row_split:
+            fragmented_texts = list(chain.from_iterable(text.splitlines() for text in selected_texts))
 
         # Переход обратно в основной поток для обновления интерфейса
         Clock.schedule_once(lambda dt: self._update_ui_after_fragmentation(fragmented_texts))
@@ -561,28 +595,6 @@ class MyApp(MDApp):
                 return selected_texts
             print("Нет текста для разбиения.")
             return []
-
-    def split_by_size(self, text, target, tolerance):
-        words = text.split()
-        fragments = []
-        current_fragment = []
-        word_count = 0
-
-        for word in words:
-            current_fragment.append(word)
-            word_count += 1
-
-            if word_count >= target:
-                fragments.append(" ".join(current_fragment))
-                current_fragment = []
-                word_count = 0
-
-        if current_fragment:
-            fragments.append(" ".join(current_fragment))
-
-        filtered_fragments = [frag for frag in fragments if len(frag.split()) >= tolerance]
-        print(f"Фрагменты после фильтрации: {filtered_fragments}")
-        return filtered_fragments
 
     def get_selected_texts(self):
         selected_texts = []
