@@ -4,7 +4,6 @@ from itertools import chain
 from kivy.metrics import dp
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.filechooser import FileChooserIconView
-from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
 
@@ -15,6 +14,7 @@ from kivy.uix.gridlayout import GridLayout
 
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
+from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.core.window import Window
 from kivymd.uix.button import MDIconButton, MDRectangleFlatButton
@@ -29,8 +29,6 @@ from functools import partial
 import logging
 
 from threading import Thread
-from kivy.uix.popup import Popup
-from kivy.uix.label import Label
 from kivy.clock import Clock
 
 
