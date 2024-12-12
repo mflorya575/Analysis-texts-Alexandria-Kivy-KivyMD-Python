@@ -2,6 +2,7 @@ from kivy.metrics import dp
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
 
 from kivy.uix.stacklayout import StackLayout
@@ -356,25 +357,6 @@ class MyApp(MDApp):
     ############################ Обработка ################################
     def show_processing_dialog(self, *args):
         # Создаем диалоговое окно выбора действия
-        if not self.dialog:
-            self.dialog = MDDialog(
-                title="Выберите действие:",
-                type="simple",
-                buttons=[
-                    MDRectangleFlatButton(
-                        text="Разбить на фрагменты",
-                        on_release=self.show_fragmentation_settings,  # Обработчик для кнопки
-                    ),
-                    MDRectangleFlatButton(
-                        text="Применить фильтры",
-                        on_release=self.apply_filters,
-                    ),
-                ],
-            )
-        self.dialog.open()
-
-    def show_processing_dialog(self, *args):
-        # Создаем диалоговое окно выбора действия
         if not self.dialog:  # Проверяем, что диалог не открыт
             self.dialog = MDDialog(
                 title="Выберите действие:",
@@ -579,10 +561,15 @@ class MyApp(MDApp):
         self.table_layout.clear_widgets()  # Очищаем все виджеты в таблице
         self.text_area.clear_widgets()  # Очищаем текстовую область
 
+        # Создание ScrollView для таблицы
+        scroll_view = ScrollView(size_hint=(1, 1))  # ScrollView на всю ширину и высоту
+        scroll_content = GridLayout(cols=4, size_hint_y=None)  # Сеточный лейаут для таблицы
+        scroll_content.bind(minimum_height=scroll_content.setter('height'))  # Автоматическая настройка высоты контента
+
         # Добавляем заголовки в таблицу слева
         headers = ["##", "Фрагмент", "Слов", "Выбрать"]
         for header in headers:
-            self.table_layout.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
+            scroll_content.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
 
         # Перебираем фрагментированные тексты
         for idx, text in enumerate(fragmented_texts, start=1):
@@ -591,20 +578,25 @@ class MyApp(MDApp):
             # Создание и привязка кнопки с числовой нумерацией
             button = Button(text=str(idx), size_hint_y=None, height=20)
             button.bind(on_press=lambda btn, idx=idx: self.on_fragment_button_press(idx, fragmented_texts))
-            self.table_layout.add_widget(button)
+            scroll_content.add_widget(button)
 
             # Создание и добавление метки с фрагментом
-            self.table_layout.add_widget(Label(text='txt', size_hint_y=None, height=20))
+            scroll_content.add_widget(Label(text='txt', size_hint_y=None, height=20))
 
             # Добавление метки с количеством слов
-            self.table_layout.add_widget(Label(text=str(word_count), size_hint_y=None, height=20))
+            scroll_content.add_widget(Label(text=str(word_count), size_hint_y=None, height=20))
 
-            # Создание чекбокса
+            # Создание чекбокса с уникальным идентификатором для фрагмента
             check_box = CheckBox(size_hint_y=None, height=20)
-            self.table_layout.add_widget(check_box)
+            check_box.fragment_id = idx  # Привязываем индекс фрагмента как уникальный идентификатор
+            scroll_content.add_widget(check_box)
 
             # Создание метки для текстовой области
             self.text_area.add_widget(Label(text=text))
+
+        # Добавляем таблицу в ScrollView
+        scroll_view.add_widget(scroll_content)
+        self.table_layout.add_widget(scroll_view)
 
     def on_fragment_button_press(self, idx, fragmented_texts):
         """
@@ -664,14 +656,20 @@ class MyApp(MDApp):
         """
         Загружает несколько текстовых файлов и добавляет их в таблицу.
         """
-        popup.dismiss()  # Закрываем попап
+        if popup:  # Проверка на None перед вызовом dismiss
+            popup.dismiss()  # Закрываем попап
         self.texts = []  # Сброс списка текстов
         self.table_layout.clear_widgets()  # Очищаем таблицу
+
+        # Создание ScrollView для таблицы
+        scroll_view = ScrollView(size_hint=(1, 1))  # ScrollView на всю ширину и высоту
+        scroll_content = GridLayout(cols=4, size_hint_y=None)  # Сеточный лейаут для таблицы
+        scroll_content.bind(minimum_height=scroll_content.setter('height'))  # Автоматическая настройка высоты контента
 
         # Заголовки таблицы
         headers = ["##", "Фрагмент", "Слов", "Выбрать"]
         for header in headers:
-            self.table_layout.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
+            scroll_content.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
 
         # Логируем начало загрузки
         self.logger.info("Начинаем загрузку файлов.")
@@ -701,17 +699,22 @@ class MyApp(MDApp):
 
                     # Чекбокс для выбора
                     checkbox = CheckBox(size_hint_y=None, height=20)
+                    checkbox.fragment_id = file_path  # Присваиваем уникальный идентификатор для файла
 
                     # Добавляем элементы в таблицу
-                    self.table_layout.add_widget(button)
-                    self.table_layout.add_widget(Label(text=fragment, size_hint_y=None, height=20))
-                    self.table_layout.add_widget(Label(text=str(words_count), size_hint_y=None, height=20))
-                    self.table_layout.add_widget(checkbox)
+                    scroll_content.add_widget(button)
+                    scroll_content.add_widget(Label(text=fragment, size_hint_y=None, height=20))
+                    scroll_content.add_widget(Label(text=str(words_count), size_hint_y=None, height=20))
+                    scroll_content.add_widget(checkbox)
 
             except Exception as e:
                 # Логируем ошибку при загрузке файла
                 self.logger.error(f"Ошибка при загрузке файла {file_path}: {e}")
                 self.text_area.text = f"Ошибка при загрузке файла {file_path}: {e}"
+
+        # Добавляем таблицу в ScrollView
+        scroll_view.add_widget(scroll_content)
+        self.table_layout.add_widget(scroll_view)
 
         # Логируем состояние словаря self.texts после загрузки
         self.logger.debug(f"Состояние self.texts после загрузки: {self.texts}")
@@ -731,17 +734,39 @@ class MyApp(MDApp):
         """
         Отмечает все чекбоксы в таблице.
         """
+        # Перебираем элементы в table_layout
         for child in self.table_layout.children:
-            if isinstance(child, CheckBox):
-                child.active = True  # Устанавливаем активное состояние для чекбоксов
+            # Если это ScrollView, ищем GridLayout внутри него
+            if isinstance(child, ScrollView):
+                for scroll_content_child in child.children:
+                    if isinstance(scroll_content_child, GridLayout):  # Находим GridLayout внутри ScrollView
+                        for checkbox in scroll_content_child.children:
+                            if isinstance(checkbox, CheckBox):
+                                checkbox.active = True  # Отмечаем чекбокс
+            # Если это GridLayout, перебираем его чекбоксы
+            elif isinstance(child, GridLayout):
+                for checkbox in child.children:
+                    if isinstance(checkbox, CheckBox):
+                        checkbox.active = True  # Отмечаем чекбокс
 
     def disable_all_checkboxes(self, instance):
         """
         Убирает отметки всех чекбоксов в таблице.
         """
+        # Перебираем элементы в table_layout
         for child in self.table_layout.children:
-            if isinstance(child, CheckBox):
-                child.active = False  # Устанавливаем НЕактивное состояние для чекбоксов
+            # Если это ScrollView, ищем GridLayout внутри него
+            if isinstance(child, ScrollView):
+                for scroll_content_child in child.children:
+                    if isinstance(scroll_content_child, GridLayout):  # Находим GridLayout внутри ScrollView
+                        for checkbox in scroll_content_child.children:
+                            if isinstance(checkbox, CheckBox):
+                                checkbox.active = False  # Снимаем отметку с чекбокса
+            # Если это GridLayout, перебираем его чекбоксы
+            elif isinstance(child, GridLayout):
+                for checkbox in child.children:
+                    if isinstance(checkbox, CheckBox):
+                        checkbox.active = False  # Снимаем отметку с чекбокса
 
     #############################################################################
 
@@ -892,48 +917,82 @@ class MyApp(MDApp):
 
     ############################ Удаление фрагментов по выделенному чекбоксу ################################
     def delete_selected_fragments(self, instance):
-        """Удаляет выбранные фрагменты, если активирован чекбокс."""
-        fragments_to_delete = []
+        """
+        Удаляет фрагменты с выделенными чекбоксами.
+        """
+        # Получаем список всех чекбоксов в таблице
+        checkboxes = [widget for widget in self.table_layout.walk() if isinstance(widget, CheckBox)]
 
-        # Перебираем виджеты в таблице, чтобы найти все активированные чекбоксы
-        for i, widget in enumerate(self.table_layout.children[:]):
-            if isinstance(widget, CheckBox) and widget.active:  # Проверяем, выбран ли чекбокс
-                # Определяем индекс фрагмента, связанного с чекбоксом
-                fragment_index = i // 4
-                fragments_to_delete.append(fragment_index)
-                print(f"Fragment with index {fragment_index} marked for deletion.")
+        # Перебираем все чекбоксы и проверяем, если они отмечены
+        for checkbox in checkboxes:
+            if checkbox.active:  # Если чекбокс выбран
+                file_path = checkbox.fragment_id  # Получаем уникальный идентификатор файла (путь)
 
-        # Удаляем выбранные фрагменты из словаря
-        removed_keys = []
-        for fragment_index in fragments_to_delete:
-            if fragment_index in self.fragments:
-                removed_key = list(self.fragments.keys())[fragment_index]  # Получаем ключ фрагмента
-                removed_keys.append(removed_key)
-                del self.fragments[removed_key]
-                print(f"Fragment with key {removed_key} deleted.")
+                # Удаляем фрагмент из списка self.texts
+                self.texts = [text for text in self.texts if text[0] != file_path]
 
-        # Обновляем таблицу после удаления фрагментов
-        self.update_table_after_deletion(fragments_to_delete)  # Передаем список всех фрагментов для удаления
-        self.update_table()
+                # Удаляем строку с таблицы (кнопки и чекбокс, связанные с фрагментом)
+                for widget in self.table_layout.children:
+                    if isinstance(widget, GridLayout):
+                        for child in widget.children:
+                            if isinstance(child, CheckBox) and child.fragment_id == file_path:
+                                widget.remove_widget(child)
+                            elif isinstance(child, Button) and child.text == str(self.texts.index((file_path, _)) + 1):
+                                widget.remove_widget(child)
+                            elif isinstance(child, Label) and (
+                                    child.text == file_path.split("/")[-1] or child.text == str(
+                                    len(file_path.split()))):
+                                widget.remove_widget(child)
 
-    def update_table_after_deletion(self, fragments_to_delete):
-        """Обновляет таблицу после удаления фрагментов."""
-        widgets_to_remove = []
+                # Логируем удаление фрагмента
+                self.logger.info(f"Фрагмент {file_path} удален.")
 
-        # Перебираем все виджеты в таблице
-        for i, widget in enumerate(self.table_layout.children[:]):
-            # Проверяем, принадлежит ли виджет фрагментам, которые мы собираемся удалить
-            if i // 4 in fragments_to_delete:  # Проверяем, связан ли виджет с фрагментом для удаления
-                widgets_to_remove.append(widget)
+        # Обновляем интерфейс (можно добавить очистку и перерисовку элементов)
+        self.table_layout.clear_widgets()
+        self.load_files([file[0] for file in self.texts], popup=None)  # Перезагружаем таблицу без удалённых файлов
 
-        # Удаляем все виджеты, связанные с этими фрагментами
-        for widget in widgets_to_remove:
-            self.table_layout.remove_widget(widget)
+    def update_table_after_deletion(self):
+        """Обновляет отображение таблицы после удаления фрагментов."""
+        self.table_layout.clear_widgets()  # Полностью очищаем таблицу
 
-    def get_fragment_index_from_checkbox(self, checkbox):
-        """Получает индекс фрагмента, связанного с чекбоксом."""
-        # Логика для получения индекса фрагмента, связанного с чекбоксом
-        return self.table_layout.children.index(checkbox) // 4
+        # Создаем новую таблицу
+        scroll_view = ScrollView(size_hint=(1, 1))  # ScrollView на всю ширину и высоту
+        scroll_content = GridLayout(cols=4, size_hint_y=None)  # Сеточный лейаут для таблицы
+        scroll_content.bind(minimum_height=scroll_content.setter('height'))  # Автоматическая настройка высоты контента
+
+        # Заголовки таблицы
+        headers = ["##", "Фрагмент", "Слов", "Выбрать"]
+        for header in headers:
+            scroll_content.add_widget(Label(text=header, size_hint_y=None, height=20, font_size="12sp"))
+
+        # Добавляем строки таблицы
+        for i, (fragment_id, fragment) in enumerate(self.fragments.items()):
+            words_count = len(fragment.split())
+
+            # Короткое имя файла для отображения
+            file_name = fragment_id.split("/")[-1]
+            if len(file_name) > 10:
+                display_name = f"{file_name[:4]}..{file_name[-4:]}"
+            else:
+                display_name = file_name
+
+            # Кнопка с индексом
+            button = Button(text=str(i), size_hint_y=None, height=20)
+            button.bind(on_release=partial(self.display_text, i))
+
+            # Чекбокс для выбора
+            checkbox = CheckBox(size_hint_y=None, height=20)
+            checkbox.fragment_id = fragment_id  # Идентификатор фрагмента
+
+            # Добавляем виджеты в таблицу
+            scroll_content.add_widget(button)
+            scroll_content.add_widget(Label(text=display_name, size_hint_y=None, height=20))
+            scroll_content.add_widget(Label(text=str(words_count), size_hint_y=None, height=20))
+            scroll_content.add_widget(checkbox)
+
+        # Добавляем таблицу в ScrollView
+        scroll_view.add_widget(scroll_content)
+        self.table_layout.add_widget(scroll_view)
     #############################################################################
 
 
