@@ -25,6 +25,11 @@ from kivymd.uix.tooltip import MDTooltip
 from functools import partial
 import logging
 
+from threading import Thread
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
+from kivy.clock import Clock
+
 
 class HoverButton(Button):
     """
@@ -461,6 +466,22 @@ class MyApp(MDApp):
             self.dialog.dismiss()
             self.dialog = None  # Обнуляем ссылку на диалог
 
+    def show_preloader(self):
+        """Отображает прелоадер"""
+        self.preloader = Popup(
+            title="Выполняется обработка...",
+            content=Label(text="Подождите, идет обработка текста..."),
+            size_hint=(0.5, 0.5),
+            auto_dismiss=False,
+        )
+        self.preloader.open()
+
+    def hide_preloader(self):
+        """Скрывает прелоадер"""
+        if hasattr(self, 'preloader') and self.preloader:
+            self.preloader.dismiss()
+            self.preloader = None
+
     def confirm_fragmentation(self, *args):
         print("Фрагментация настроена")
 
@@ -480,15 +501,29 @@ class MyApp(MDApp):
         tolerance = int(tolerance)
 
         # Получаем текст из text_area или из загруженных файлов
-        selected_texts = self.get_text_from_area_or_fragments()  # Функция для получения текста
+        selected_texts = self.get_text_from_area_or_fragments()
         print(f"Выбранные тексты: {selected_texts}")
 
         if not selected_texts:
             print("Не выбран текст для разбиения")
             return
 
-        # Разбиение текста
+        # Отображаем прелоадер
+        self.show_preloader()
+
+        # Запускаем вычисления в потоке
+        Thread(
+            target=self._fragment_texts_in_thread,
+            args=(selected_texts, size_split, row_split, target, tolerance),
+            daemon=True
+        ).start()
+
+    def _fragment_texts_in_thread(self, selected_texts, size_split, row_split, target, tolerance):
+        """
+        Выполняет фрагментацию текста в отдельном потоке и обновляет интерфейс.
+        """
         fragmented_texts = []
+
         for text in selected_texts:
             print(f"Обрабатываем текст: {text}")
             if row_split:
@@ -496,10 +531,21 @@ class MyApp(MDApp):
             elif size_split:
                 fragmented_texts.extend(self.split_by_size(text, target, tolerance))  # Разбиваем по размеру
 
-        print(f"Фрагментированные тексты: {fragmented_texts}")
-        # Обновляем таблицу слева и текстовую область справа
+        # Переход обратно в основной поток для обновления интерфейса
+        Clock.schedule_once(lambda dt: self._update_ui_after_fragmentation(fragmented_texts))
+
+    def _update_ui_after_fragmentation(self, fragmented_texts):
+        """
+        Скрывает прелоадер, обновляет интерфейс с результатами фрагментации
+        и закрывает окно настроек фрагментатора.
+        """
+        # Скрываем прелоадер
+        self.hide_preloader()
+
+        # Обновляем таблицу и текстовую область
         self.update_table_and_text_area(fragmented_texts)
 
+        # Закрываем окно "Настройки фрагментатора", если оно открыто
         if self.dialog:
             self.dialog.dismiss()
             self.dialog = None
