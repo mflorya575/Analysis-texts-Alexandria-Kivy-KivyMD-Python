@@ -568,19 +568,25 @@ class MyApp(MDApp):
 
     def _update_ui_after_fragmentation(self, fragmented_texts):
         """
-        Скрывает прелоадер, обновляет интерфейс с результатами фрагментации
-        и закрывает окно настроек фрагментатора.
+        Обновляет интерфейс после фрагментации текста.
         """
         # Скрываем прелоадер
         self.hide_preloader()
 
-        # Обновляем таблицу и текстовую область
-        self.update_table_and_text_area(fragmented_texts)
+        # Подсчитываем количество фрагментов
+        num_fragments = len(fragmented_texts)
 
-        # Закрываем окно "Настройки фрагментатора", если оно открыто
-        if self.dialog:
-            self.dialog.dismiss()
-            self.dialog = None
+        # Показать всплывающее окно с информацией
+        info_popup = Popup(
+            title="Обработка завершена",
+            content=Label(text=f"Фрагментация завершена.\nКоличество фрагментов: {num_fragments}"),
+            size_hint=(0.5, 0.5),
+            auto_dismiss=True
+        )
+        info_popup.open()
+
+        # Здесь можно обновить интерфейс с результатами
+        self.update_table_and_text_area(fragmented_texts)
 
     def get_text_from_area_or_fragments(self):
         if self.text_area.text.strip() != 'Нет текста':  # Дополнительная проверка
