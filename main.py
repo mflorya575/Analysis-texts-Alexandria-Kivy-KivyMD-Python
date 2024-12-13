@@ -225,6 +225,7 @@ class MyApp(MDApp):
             icon_size="10dp",
             tooltip_text="Создать новый словарь",
         )
+        button_dict_1.bind(on_release=self.on_create_dictionary)
         button_dict_2 = IconButtonWithTooltip(
             icon="folder-file",
             icon_color=(0.5, 0.5, 1, 1),
@@ -280,14 +281,14 @@ class MyApp(MDApp):
         left_top_layout.add_widget(text_input_1)
 
         # Вставляем MDDataTable в правую верхнюю ячейку
-        data_table = MDDataTable(
+        self.data_table = MDDataTable(
             size_hint=(1, 1),
             column_data=[
                 ("Лексема", dp(30)),
                 ("Частота", dp(30)),
                 ("Длина", dp(30)),
             ],
-            row_data=[(f"Лексема {i}", str(i * 10), str(len(f"Лексема {i}"))) for i in range(1, 11)],
+            row_data=[],
             use_pagination=True,  # Включаем пагинацию
         )
         # Кнопка над таблицей
@@ -303,7 +304,7 @@ class MyApp(MDApp):
         # Создаем контейнер для таблицы
         right_top_layout = BoxLayout(orientation="vertical")
         right_top_layout.add_widget(table_button)
-        right_top_layout.add_widget(data_table)
+        right_top_layout.add_widget(self.data_table)
 
         # Добавляем элементы в верхний layout
         top_layout.add_widget(left_top_layout)
@@ -361,6 +362,58 @@ class MyApp(MDApp):
         tb.add_widget(dictionary_tab)
 
         return tb
+
+
+
+    ############################ Создать новый словарь ################################
+    def on_create_dictionary(self, instance):
+        """
+        Обработчик нажатия на кнопку "Создать новый словарь".
+        """
+        # Словарь для подсчета частоты слов
+        word_frequency = {}
+
+        # Проход по всем строкам в таблице фрагментов (self.texts)
+        for fragment in self.texts:
+            if isinstance(fragment, tuple):
+                fragment_text = fragment[1]  # Извлекаем текст из кортежа (например, 2-й элемент)
+            else:
+                fragment_text = fragment  # Если это уже строка, используем как есть
+
+            words = fragment_text.split()  # Разделяем текст на слова
+
+            for word in words:
+                cleaned_word = word.strip(".,!?())([]{}«»=#+:;\"").lower()  # Очистка слова
+                if cleaned_word:  # Проверяем, что слово не пустое
+                    word_frequency[cleaned_word] = word_frequency.get(cleaned_word, 0) + 1
+
+        # Формируем данные для таблицы
+        row_data = [
+            (word, str(freq), str(len(word)))
+            for word, freq in sorted(word_frequency.items(), key=lambda x: x[0])  # Сортировка по алфавиту
+        ]
+
+        # Обновляем данные в MDDataTable
+        self.update_dictionary_table(row_data)
+
+    def update_dictionary_table(self, row_data):
+        """
+        Обновляет данные в таблице словаря.
+        """
+        # Очищаем таблицу
+        self.data_table.row_data = []  # Сброс текущих данных
+
+        # Устанавливаем новые данные
+        self.data_table.row_data = row_data
+    ###################################################################################
+
+
+
+
+
+
+
+
 
     ############################ Обработка ################################
     def show_processing_dialog(self, *args):
