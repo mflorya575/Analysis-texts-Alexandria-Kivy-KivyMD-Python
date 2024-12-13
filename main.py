@@ -387,10 +387,10 @@ class MyApp(MDApp):
                 if cleaned_word:  # Проверяем, что слово не пустое
                     word_frequency[cleaned_word] = word_frequency.get(cleaned_word, 0) + 1
 
-        # Формируем данные для таблицы
+        # Формируем данные для таблицы, сортируем по частоте в убывающем порядке
         row_data = [
             (word, str(freq), str(len(word)))
-            for word, freq in sorted(word_frequency.items(), key=lambda x: x[0])  # Сортировка по алфавиту
+            for word, freq in sorted(word_frequency.items(), key=lambda x: x[1], reverse=True)  # Сортировка по частоте
         ]
 
         # Обновляем данные в MDDataTable
@@ -406,6 +406,14 @@ class MyApp(MDApp):
         # Устанавливаем новые данные
         self.data_table.row_data = row_data
     ###################################################################################
+
+
+
+
+
+
+
+
 
 
 
