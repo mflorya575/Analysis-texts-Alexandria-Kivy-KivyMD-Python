@@ -17,7 +17,7 @@ from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.core.window import Window
-from kivymd.uix.button import MDIconButton, MDRectangleFlatButton
+from kivymd.uix.button import MDIconButton, MDRectangleFlatButton, MDRoundFlatIconButton, MDRectangleFlatIconButton
 from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
@@ -214,8 +214,7 @@ class MyApp(MDApp):
         bottom_layout = GridLayout(cols=2, spacing=10, padding=5, size_hint=(1, 0.5))
 
         # TextInput в левой верхней ячейке
-        text_input_1 = TextInput(multiline=True, size_hint=(1, 1))
-        text_input_1.text = "Слева сверху"
+        self.text_input_1 = BoxLayout(orientation='vertical', size_hint=(1, 1))
 
         # Создаем кнопки
         button_dict_1 = IconButtonWithTooltip(
@@ -278,7 +277,7 @@ class MyApp(MDApp):
 
         # Добавляем кнопки и текстовое поле в вертикальный layout
         left_top_layout.add_widget(buttons_layout)
-        left_top_layout.add_widget(text_input_1)
+        left_top_layout.add_widget(self.text_input_1)
 
         # Вставляем MDDataTable в правую верхнюю ячейку
         self.data_table = MDDataTable(
@@ -395,6 +394,60 @@ class MyApp(MDApp):
 
         # Обновляем данные в MDDataTable
         self.update_dictionary_table(row_data)
+
+        # Добавление кнопок в левую область
+        self.create_left_buttons(len(word_frequency))
+
+    def create_left_buttons(self, word_count):
+        """
+        Создает кнопки "Базовый словарь" и "Корзина" в левую область.
+        """
+        # Очищаем левый контейнер
+        self.text_input_1.clear_widgets()
+
+        # Создание текстового поля
+        text_input_1 = TextInput(multiline=True, size_hint=(1, 1))
+
+        # Создание кнопки "Базовый словарь"
+        base_dict_button = MDRectangleFlatIconButton(
+            text=f"Базовый словарь ({word_count})",
+            size_hint=(1, None),
+            icon="book-alphabet",
+            height=30,
+            text_color="white",
+            line_color="yellow",
+            icon_color="yellow",
+            on_press=self.on_base_dict_button_press,  # Обработчик клика
+        )
+
+        # Создание кнопки "Корзина"
+        trash_button = MDRectangleFlatIconButton(
+            text="Корзина",
+            size_hint=(1, None),
+            icon="trash-can-outline",
+            height=30,
+            text_color="white",
+            line_color="green",
+            icon_color="green",
+            on_press=self.on_trash_button_press,  # Обработчик клика
+        )
+
+        # Добавляем элементы в контейнер
+        self.text_input_1.add_widget(text_input_1)
+        self.text_input_1.add_widget(base_dict_button)
+        self.text_input_1.add_widget(trash_button)
+
+    def on_base_dict_button_press(self, instance):
+        """
+        Обработчик нажатия на кнопку "Базовый словарь".
+        """
+        print("Кнопка 'Базовый словарь' нажата. Добавьте сюда функционал.")
+
+    def on_trash_button_press(self, instance):
+        """
+        Обработчик нажатия на кнопку "Корзина".
+        """
+        print("Кнопка 'Корзина' нажата. Добавьте сюда функционал.")
 
     def update_dictionary_table(self, row_data):
         """
