@@ -333,6 +333,13 @@ class DataLexApp(MDApp):
         dictionary_tab.add_widget(main_layout)
         tb.add_widget(dictionary_tab)
 
+        # Вкладка "Факторный анализ"
+        filters_tab = TabbedPanelItem(
+            text="Факторный анализ", font_size="11sp", size_hint=(None, None), width=50, height=22
+        )
+        filters_tab.add_widget(Label(text="Факторный анализ"))
+        tb.add_widget(filters_tab)
+
         return tb
 
 
