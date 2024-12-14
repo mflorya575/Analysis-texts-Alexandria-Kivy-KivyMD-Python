@@ -64,6 +64,9 @@ class MyApp(MDApp):
         # Добавляем обработчик в логгер
         self.logger.addHandler(handler)
 
+        self.base_dict_words = []  # Список для слов базового словаря
+        self.trash_words = []  # Список для слов корзины
+
     def build(self):
         self.texts = []
         self.text_area = TextInput(
@@ -356,6 +359,10 @@ class MyApp(MDApp):
                 cleaned_word = word.strip(".,!?())([]{}«»=#+:;\"").lower()  # Очистка слова
                 if cleaned_word:  # Проверяем, что слово не пустое
                     word_frequency[cleaned_word] = word_frequency.get(cleaned_word, 0) + 1
+                    # Добавляем слово в список базового словаря, если оно не пустое
+                    if cleaned_word not in self.base_dict_words:
+                        self.base_dict_words.append(cleaned_word)
+            self.logger.debug(self.base_dict_words)
 
         # Формируем данные для таблицы, сортируем по частоте в убывающем порядке
         row_data = [
