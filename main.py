@@ -350,11 +350,11 @@ class DataLexApp(MDApp):
                 text="При создании нового словаря все текущие данные будут утеряны! Продолжить?",
                 buttons=[
                     MDRectangleFlatButton(
-                        text="ОТМЕНА",
+                        text="Отмена",
                         on_release=self.cancel_action_dict  # Обработчик отмены
                     ),
                     MDRectangleFlatButton(
-                        text="ОК",
+                        text="Да",
                         on_release=self.confirm_action_dict  # Обработчик подтверждения
                     ),
                 ],
