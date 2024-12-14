@@ -372,17 +372,21 @@ class MyApp(MDApp):
         self.update_dictionary_table(row_data)
 
         # Добавление кнопок в левую область
-        self.create_left_buttons(len(word_frequency))
+        self.create_left_buttons_top(len(word_frequency))
 
-    def create_left_buttons(self, word_count):
+    def create_left_buttons_top(self, word_count):
         """
         Создает кнопки "Базовый словарь" и "Корзина" в левую область.
         """
         # Очищаем левый контейнер
         self.text_input_1.clear_widgets()
 
-        # Создание текстового поля
-        text_input_1 = TextInput(multiline=True, size_hint=(1, 1))
+        # Создаём ScrollView для прокрутки
+        scroll_view = ScrollView(size_hint=(1, 1))
+
+        # Контейнер для кнопок внутри ScrollView
+        button_container = BoxLayout(orientation='vertical', size_hint_y=None)
+        button_container.bind(minimum_height=button_container.setter('height'))  # Динамическая высота
 
         # Создание кнопки "Базовый словарь"
         base_dict_button = MDRectangleFlatIconButton(
@@ -408,10 +412,19 @@ class MyApp(MDApp):
             on_press=self.on_trash_button_press,  # Обработчик клика
         )
 
-        # Добавляем элементы в контейнер
-        self.text_input_1.add_widget(text_input_1)
-        self.text_input_1.add_widget(base_dict_button)
-        self.text_input_1.add_widget(trash_button)
+        # Создание текстового поля
+        text_input_1 = TextInput(multiline=True, size_hint=(1, 1), height=150)
+
+        # Добавляем элементы в контейнер кнопок
+        button_container.add_widget(base_dict_button)
+        button_container.add_widget(trash_button)
+        button_container.add_widget(text_input_1)
+
+        # Добавляем контейнер кнопок в ScrollView
+        scroll_view.add_widget(button_container)
+
+        # Очищаем основной контейнер и добавляем в него ScrollView
+        self.text_input_1.add_widget(scroll_view)
 
     def on_base_dict_button_press(self, instance):
         """
