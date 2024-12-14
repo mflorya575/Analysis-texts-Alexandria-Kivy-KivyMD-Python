@@ -17,7 +17,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
-from kivymd.uix.button import MDRectangleFlatButton, MDRectangleFlatIconButton
+from kivymd.uix.button import MDRectangleFlatButton, MDRectangleFlatIconButton, MDFlatButton, MDRaisedButton
 from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
@@ -26,6 +26,7 @@ from kivymd.uix.textfield import MDTextField
 
 from functools import partial
 import logging
+import re
 
 from threading import Thread
 from kivy.clock import Clock
@@ -197,7 +198,7 @@ class DataLexApp(MDApp):
             icon_size="10dp",
             tooltip_text="Создать новый словарь",
         )
-        button_dict_1.bind(on_release=self.on_create_dictionary)
+        button_dict_1.bind(on_release=self.show_confirmation_dialog_dict)
         button_dict_2 = IconButtonWithTooltip(
             icon="folder-file",
             icon_color=(0.5, 0.5, 1, 1),
@@ -339,6 +340,44 @@ class DataLexApp(MDApp):
 
 
     ############################ Создать новый словарь ################################
+    def show_confirmation_dialog_dict(self, instance):
+        """
+        Отображает предупреждающее окно перед созданием нового словаря.
+        """
+        if not self.dialog:
+            self.dialog = MDDialog(
+                title="Внимание!",
+                text="При создании нового словаря все текущие данные будут утеряны! Продолжить?",
+                buttons=[
+                    MDRectangleFlatButton(
+                        text="ОТМЕНА",
+                        on_release=self.cancel_action_dict  # Обработчик отмены
+                    ),
+                    MDRectangleFlatButton(
+                        text="ОК",
+                        on_release=self.confirm_action_dict  # Обработчик подтверждения
+                    ),
+                ],
+            )
+        self.dialog.open()  # Открываем диалог
+
+    def cancel_action_dict(self, instance):
+        """
+        Обработчик кнопки "Отмена".
+        """
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None  # Обнуляем ссылку
+
+    def confirm_action_dict(self, instance):
+        """
+        Обработчик кнопки "ОК".
+        """
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None  # Обнуляем ссылку
+        self.on_create_dictionary(None)
+
     def on_create_dictionary(self, instance):
         """
         Обработчик нажатия на кнопку "Создать новый словарь".
@@ -356,7 +395,7 @@ class DataLexApp(MDApp):
             words = fragment_text.split()  # Разделяем текст на слова
 
             for word in words:
-                cleaned_word = word.strip(".,!?())([]{}«»=#+:;\"").lower()  # Очистка слова
+                cleaned_word = re.sub(r'[^\w\-]', '', word).lower()  # Очистка слова
                 if cleaned_word:  # Проверяем, что слово не пустое
                     word_frequency[cleaned_word] = word_frequency.get(cleaned_word, 0) + 1
                     # Добавляем слово в список базового словаря, если оно не пустое
