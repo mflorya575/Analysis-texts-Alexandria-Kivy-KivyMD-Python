@@ -1,3 +1,4 @@
+from kivy.config import Config
 from concurrent.futures import ThreadPoolExecutor
 from itertools import chain
 
@@ -31,6 +32,11 @@ from kivy.clock import Clock
 
 from table_components_functions.start_program import initialize_table
 from table_components_functions.utils import IconButtonWithTooltip
+
+
+Config.set("graphics", "width", "1200")
+Config.set("graphics", "height", "700")
+Config.write()
 
 
 class MyApp(MDApp):
@@ -246,8 +252,9 @@ class MyApp(MDApp):
         # Вставляем MDDataTable в правую верхнюю ячейку
         self.data_table = MDDataTable(
             size_hint=(1, 1),
+            check=True,
             column_data=[
-                ("Лексема", dp(30)),
+                ("Лексема", dp(50)),
                 ("Частота", dp(30)),
                 ("Длина", dp(30)),
             ],
