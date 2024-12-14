@@ -315,11 +315,9 @@ class MyApp(MDApp):
 
         # TextInput в нижнем левом углу
         text_input_3 = TextInput(multiline=True, size_hint=(0.4, 1))
-        text_input_3.text = "Слева снизу"
 
         # TextInput в нижнем правом углу
         text_input_4 = TextInput(multiline=True, size_hint=(1, 1))
-        text_input_4.text = "Справа снизу"
 
         # Добавляем элементы в нижний layout
         bottom_layout.add_widget(text_input_3)
