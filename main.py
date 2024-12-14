@@ -569,10 +569,18 @@ class DataLexApp(MDApp):
         Устанавливает активное состояние для нажатой кнопки.
         """
         # Сбрасываем состояние всех кнопок
-        for button in [self.base_dict_button, self.trash_button, self.base_dict_button_bottom, self.trash_button_bottom]:
-            button.text_color = "white"  # Цвет текста по умолчанию
-            button.line_color = "yellow" if button == self.base_dict_button else "green"  # Линия по умолчанию
-            button.icon_color = button.line_color
+        for button in [self.base_dict_button, self.trash_button, self.base_dict_button_bottom,
+                       self.trash_button_bottom]:
+            if button in [self.base_dict_button, self.base_dict_button_bottom]:
+                # Для кнопок базового словаря
+                button.text_color = "white"
+                button.line_color = "yellow"
+                button.icon_color = "yellow"
+            elif button in [self.trash_button, self.trash_button_bottom]:
+                # Для кнопок корзины
+                button.text_color = "white"
+                button.line_color = "green"
+                button.icon_color = "green"
 
         # Устанавливаем активное состояние для текущей кнопки
         instance.text_color = "blue"
