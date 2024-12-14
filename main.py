@@ -39,7 +39,7 @@ Config.set("graphics", "height", "700")
 Config.write()
 
 
-class MyApp(MDApp):
+class DataLexApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.fragments = {}  # Словарь для хранения фрагментов
@@ -1232,4 +1232,4 @@ class MyApp(MDApp):
 
 
 if __name__ == "__main__":
-    MyApp().run()
+    DataLexApp().run()

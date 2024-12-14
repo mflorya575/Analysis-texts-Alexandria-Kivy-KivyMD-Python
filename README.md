@@ -1,4 +1,4 @@
-# Analysis texts in Python Kivy/KivyMD (Александрия)
+# Analysis texts in Python Kivy/KivyMD (DataLex)
 
 Функционал:<br>
 -- Раздел "Фрагменты" --
