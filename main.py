@@ -397,7 +397,7 @@ class MyApp(MDApp):
             text_color="white",
             line_color="yellow",
             icon_color="yellow",
-            on_press=self.on_base_dict_button_press,  # Обработчик клика
+            on_press=self.on_base_dict_button_press_top,  # Обработчик клика
         )
 
         # Создание кнопки "Корзина"
@@ -409,7 +409,7 @@ class MyApp(MDApp):
             text_color="white",
             line_color="green",
             icon_color="green",
-            on_press=self.on_trash_button_press,  # Обработчик клика
+            on_press=self.on_trash_button_press_top,  # Обработчик клика
         )
 
         # Создание текстового поля
@@ -426,15 +426,15 @@ class MyApp(MDApp):
         # Очищаем основной контейнер и добавляем в него ScrollView
         self.text_input_1.add_widget(scroll_view)
 
-    def on_base_dict_button_press(self, instance):
+    def on_base_dict_button_press_top(self, instance):
         """
-        Обработчик нажатия на кнопку "Базовый словарь".
+        Обработчик нажатия на кнопку "Базовый словарь" в верхнем поле слева.
         """
         print("Кнопка 'Базовый словарь' нажата. Добавьте сюда функционал.")
 
-    def on_trash_button_press(self, instance):
+    def on_trash_button_press_top(self, instance):
         """
-        Обработчик нажатия на кнопку "Корзина".
+        Обработчик нажатия на кнопку "Корзина" в верхнем поле слева.
         """
         print("Кнопка 'Корзина' нажата. Добавьте сюда функционал.")
 
