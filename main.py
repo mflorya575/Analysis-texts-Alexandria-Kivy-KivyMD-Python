@@ -360,7 +360,7 @@ class MyApp(MDApp):
                     # Добавляем слово в список базового словаря, если оно не пустое
                     if cleaned_word not in self.base_dict_words:
                         self.base_dict_words.append(cleaned_word)
-            self.logger.debug(self.base_dict_words)
+            self.logger.debug(f"Список слов в кнопке 'Базовый словарь: '{self.base_dict_words}")
 
         # Формируем данные для таблицы, сортируем по частоте в убывающем порядке
         row_data = [
@@ -376,7 +376,7 @@ class MyApp(MDApp):
 
     def create_left_buttons_top(self, word_count):
         """
-        Создает кнопки "Базовый словарь" и "Корзина" в левую область.
+        Создает кнопки "Базовый словарь" и "Корзина" в левую область с активным состоянием.
         """
         # Очищаем левый контейнер
         self.text_input_1.clear_widgets()
@@ -389,7 +389,7 @@ class MyApp(MDApp):
         button_container.bind(minimum_height=button_container.setter('height'))  # Динамическая высота
 
         # Создание кнопки "Базовый словарь"
-        base_dict_button = MDRectangleFlatIconButton(
+        self.base_dict_button = MDRectangleFlatIconButton(
             text=f"Базовый словарь ({word_count})",
             size_hint=(1, None),
             icon="book-alphabet",
@@ -397,11 +397,11 @@ class MyApp(MDApp):
             text_color="white",
             line_color="yellow",
             icon_color="yellow",
-            on_press=self.on_base_dict_button_press_top,  # Обработчик клика
+            on_press=self.set_active_button,  # Обработчик для активации
         )
 
         # Создание кнопки "Корзина"
-        trash_button = MDRectangleFlatIconButton(
+        self.trash_button = MDRectangleFlatIconButton(
             text="Корзина",
             size_hint=(1, None),
             icon="trash-can-outline",
@@ -409,15 +409,15 @@ class MyApp(MDApp):
             text_color="white",
             line_color="green",
             icon_color="green",
-            on_press=self.on_trash_button_press_top,  # Обработчик клика
+            on_press=self.set_active_button,  # Обработчик для активации
         )
 
         # Создание текстового поля
         text_input_1 = TextInput(multiline=True, size_hint=(1, 1), height=150)
 
         # Добавляем элементы в контейнер кнопок
-        button_container.add_widget(base_dict_button)
-        button_container.add_widget(trash_button)
+        button_container.add_widget(self.base_dict_button)
+        button_container.add_widget(self.trash_button)
         button_container.add_widget(text_input_1)
 
         # Добавляем контейнер кнопок в ScrollView
@@ -425,6 +425,21 @@ class MyApp(MDApp):
 
         # Очищаем основной контейнер и добавляем в него ScrollView
         self.text_input_1.add_widget(scroll_view)
+
+    def set_active_button(self, instance):
+        """
+        Устанавливает активное состояние для нажатой кнопки.
+        """
+        # Сбрасываем состояние всех кнопок
+        for button in [self.base_dict_button, self.trash_button]:
+            button.text_color = "white"  # Цвет текста по умолчанию
+            button.line_color = "yellow" if button == self.base_dict_button else "green"  # Линия по умолчанию
+            button.icon_color = button.line_color
+
+        # Устанавливаем активное состояние для текущей кнопки
+        instance.text_color = "blue"
+        instance.line_color = "blue"
+        instance.icon_color = "blue"
 
     def on_base_dict_button_press_top(self, instance):
         """
