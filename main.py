@@ -762,6 +762,7 @@ class DataLexApp(MDApp):
             args=(selected_texts, size_split, row_split, target, tolerance),
             daemon=True
         ).start()
+        self.dialog = None  # Обнуляем ссылку на диалог
 
     def split_by_size(self, text_iterable, target, tolerance):
         if not text_iterable:
