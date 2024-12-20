@@ -5,6 +5,7 @@ from itertools import chain
 from kivy.metrics import dp
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.progressbar import ProgressBar
 from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
 
@@ -163,6 +164,11 @@ class DataLexApp(MDApp):
         main_layout.add_widget(self.text_area)
 
         layout.add_widget(main_layout)
+
+        # Добавляем ProgressBar в самый низ
+        self.progress_bar = ProgressBar(max=100, value=0, size_hint_y=None, height=20)
+        layout.add_widget(self.progress_bar)
+
         fragments_tab.add_widget(layout)
         tb.add_widget(fragments_tab)
 
@@ -944,7 +950,7 @@ class DataLexApp(MDApp):
 
     def load_files(self, file_paths, popup):
         """
-        Загружает несколько текстовых файлов и добавляет их в таблицу.
+        Загружает несколько текстовых файлов и обновляет прогрессбар по мере загрузки.
         """
         if popup:  # Проверка на None перед вызовом dismiss
             popup.dismiss()  # Закрываем попап
@@ -963,6 +969,11 @@ class DataLexApp(MDApp):
 
         # Логируем начало загрузки
         self.logger.info("Начинаем загрузку файлов.")
+
+        # Инициализируем прогрессбар
+        total_files = len(file_paths)
+        self.progress_bar.max = total_files
+        self.progress_bar.value = 0
 
         # Добавляем строки таблицы
         for i, file_path in enumerate(file_paths, start=1):
@@ -1001,6 +1012,9 @@ class DataLexApp(MDApp):
                 # Логируем ошибку при загрузке файла
                 self.logger.error(f"Ошибка при загрузке файла {file_path}: {e}")
                 self.text_area.text = f"Ошибка при загрузке файла {file_path}: {e}"
+
+            # Обновляем прогрессбар после обработки каждого файла
+            self.progress_bar.value += 1
 
         # Добавляем таблицу в ScrollView
         scroll_view.add_widget(scroll_content)
